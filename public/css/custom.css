@@ -1,0 +1,17 @@
+/* Exemplo de estilo para uma barra de navegação com cor Navy */
+.navbar-navy {
+    background-color: #495e8a !important; /* Exemplo: Verde. Use sua cor hexadecimal */
+    color: #FFFFFF !important;            /* Cor do texto para contrastar */
+}
+
+/* Você pode adicionar outros estilos aqui também */
+/* Exemplo: para mudar a cor de fundo de todo o corpo */
+body {
+    background-color: #c3c5c9;
+}
+
+/* Exemplo: para personalizar botões do AdminLTE */
+.btn-primary {
+    background-color: #19b856 !important; /* Um tom de laranja/vermelho */
+    border-color: #055529 !important;
+}

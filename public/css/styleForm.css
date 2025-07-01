@@ -1,0 +1,213 @@
+/* Arquivo: styleForm.css */
+:root {
+    --primary-color: #56678c;
+    /* Define a root variable for primary color */
+    --secondary-color: #92AFC2;
+    --font-color-thead: white;
+}
+
+body {
+    color: #566787;
+    background: #f5f5f5;
+    /* font-family: 'Varela Round', sans-serif;*/
+
+}
+
+.btn-primary {
+    background-color: #E0FFE0 !important; /* Com !important */
+    color: #045204 !important;
+}
+
+.topHeading #button {
+    margin-right: 20px;
+}
+
+.formulario {
+    margin-top: 0px;
+    text-transform: capitalize;
+}
+
+.formulario-list {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 20px 35px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.modal-footer {
+    background-color: var(--secondary-color);
+    color: white;
+}
+.formulario-list h2 {
+    color: #566787;
+    font-weight: 600;
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+}
+
+.table {
+    border-collapse: collapse;
+    margin: 25px 0;
+    height: 5px;
+    font-size: 15px;
+    min-width: 100%;
+    overflow: hidden;
+    border-radius: 5px 5px 0 0;
+}
+
+.table-title {
+    background: #435d7d; /* Azul escuro */
+    color: #fff;
+    padding: 16px 30px;
+    margin: -20px -25px 10px;
+    border-radius: 3px 3px 0 0;
+    /* Outras regras como padding-bottom, float, etc. */
+}
+
+.table thead tr {
+    color: var(--font-color-thead);
+    background-color: #495E8A;
+    text-align: left;
+    font-weight: bold;
+}
+
+.table thead tr th {
+    border: 1px solid #ddd;
+}
+
+.table td {
+    /*padding: 12px 15px; */
+    border-left: solid 1px rgb(246, 242, 242);
+    padding: 5px 5px;
+}
+
+.table tbody tr {
+    border-bottom: 1px solid #ddd;
+}
+
+.table tbody tr:nth-of-type(odd) {
+    background: #f3f3f3;
+}
+
+.table tbody tr.active {
+    font-weight: bold;
+    color: #4AD489;
+
+}
+
+.table tbody tr:last-of-type {
+    border-bottom: 2px solid #e9e9e9;
+}
+
+.table button {
+    padding: 6px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid #4AD489;
+}
+
+.table button:hover {
+    background: #4AD489;
+    color: #fff;
+    transition: 0.5rem;
+}
+
+.vl {
+    border-left: 5px solid black;
+    height: 200px;
+}
+
+/* ÍCONES DE INFORMAÇÃO COM TOOLTIP */
+/* Estilos para o ícone INFO dentro do tooltip container */
+.tooltip-container i.fa-info-circle {
+    font-size: 24px;
+    color: blue;
+    /* Remova o padding do ícone individualmente, já que o padding está no container */
+}
+
+/* Estilos para o texto do tooltip */
+.tooltip-text {
+    visibility: hidden;
+    width: auto;
+    /* Ajusta a largura automaticamente ao conteúdo */
+    background-color: #555;
+    color: #fff;
+    text-align: left;
+    border-radius: 6px;
+    padding: 10px;
+    /* Padding interno do texto */
+    padding-left: 15px;
+    /* Adiciona padding à esquerda para afastar o texto da borda */
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s, visibility 0.3s;
+    white-space: nowrap;
+    /* Evita quebras de linha indesejadas (remova se precisar de quebras) */
+}
+
+/* Seta na parte inferior do tooltip */
+.tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+}
+
+/* Mostra o tooltip ao passar o mouse */
+.tooltip-container:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Estilos para o alinhamento dos itens (mantendo a estrutura anterior) */
+.tooltip-text br {
+    display: block;
+    /* Garante que <br> funcione para quebrar as linhas */
+    margin-bottom: 5px;
+    /* Adiciona um pouco de espaço entre as linhas (opcional) */
+}
+
+
+
+/* Novas regras para o formulário */
+.form-compact-body {
+    padding-top: 0.8rem;    /* Original do Bootstrap é geralmente 1.25rem */
+    padding-bottom: 0.8rem; /* Original do Bootstrap é geralmente 1.25rem */
+    padding-left: 1.25rem;  /* Mantenha ou ajuste conforme necessário */
+    padding-right: 1.25rem; /* Mantenha ou ajuste conforme necessário */
+}
+
+/* Opcional: Reduzir um pouco o tamanho dos campos do formulário e labels */
+/* Se você já usa form-control-sm no HTML, isso pode ser redundante, mas serve para mais controle */
+.form-compact-body .form-group {
+    margin-bottom: 0.5rem; /* Reduz a margem inferior entre grupos de formulário */
+}
+
+.form-compact-body .form-control-sm { /* Isso afeta inputs, selects, textareas com form-control-sm */
+    height: calc(1.5em + 0.5rem + 2px); /* Altura padrão para form-control-sm é 1.5em + 0.5rem + 2px.
+                                           Você pode ajustar '0.5rem' para '0.3rem' por exemplo. */
+    padding: 0.25rem 0.5rem; /* Padding padrão para form-control-sm é 0.25rem 0.5rem. Reduza se quiser. */
+    font-size: 0.875rem; /* Tamanho da fonte menor para campos compactos */
+}
+
+.form-compact-body .small-label {
+    font-size: 0.875rem; /* Tamanho da fonte menor para labels */
+    margin-bottom: 0.25rem; /* Reduz a margem inferior da label para o campo */
+}
+

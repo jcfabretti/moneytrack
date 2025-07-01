@@ -1,0 +1,208 @@
+/* Root Variables */
+:root {
+    --primary-color: #56678c;
+    --secondary-color: #92AFC2;
+    --background-color: #f5f5f5;
+    --text-color: #566787;
+    --hover-color: #03A9F4;
+    --border-color: #ddd;
+    --table-header-color: #1e585b;
+  /*  --table-header-color: #143f6b;*/
+}
+
+/* General Body Styles */
+body {
+    color: var(--text-color);
+    background: var(--background-color);
+}
+
+/* Utility Classes */
+.border-radius {
+    border-radius: 5px;
+}
+
+.flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Table Styling */
+.table {
+    border-collapse: collapse;
+    margin: 25px 0;
+    width: 100%;
+    font-size: 15px;
+    overflow: hidden;
+    border-radius: 5px 5px 0 0;
+}
+
+.table thead tr {
+    color: var(--text-color);
+    background-color: var(--table-header-color);
+    text-align: left;
+    font-weight: bold;
+}
+
+.table th, 
+.table td {
+    padding: 5px;
+    border: 1px solid var(--border-color);
+}
+
+.table tbody tr:nth-of-type(odd) {
+    background: #f3f3f3;
+}
+
+.table tbody tr:hover {
+    background: var(--background-color);
+}
+
+.table button {
+    padding: 6px 20px;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px solid #4AD489;
+    cursor: pointer;
+    transition: background-color 0.5s;
+}
+
+.table button:hover {
+    background: #4AD489;
+    color: #fff;
+}
+
+/* Modal Styling */
+.modal .modal-header, 
+.modal .modal-footer {
+    background: var(--secondary-color);
+    color: #fff;
+}
+
+.modal .modal-content {
+    border-radius: 3px;
+}
+
+.modal .form-control {
+    border-radius: 2px;
+    border-color: var(--border-color);
+}
+
+.modal textarea.form-control {
+    resize: vertical;
+}
+
+/* Pagination */
+.pagination {
+    float: right;
+    margin: 0 0 5px;
+}
+
+.pagination li a {
+    border: none;
+    font-size: 13px;
+    min-width: 30px;
+    min-height: 30px;
+    color: #999;
+    margin: 0 2px;
+    line-height: 30px;
+    border-radius: 2px !important;
+    text-align: center;
+    padding: 0 6px;
+}
+
+.pagination li a:hover {
+    color: #666;
+}
+
+.pagination li.active a {
+    background: var(--hover-color);
+}
+
+.pagination li.active a:hover {
+    background: #0397d6;
+}
+
+/* Custom Checkbox */
+.custom-checkbox input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    z-index: 9;
+}
+
+.custom-checkbox label {
+    position: relative;
+    padding-left: 30px;
+    cursor: pointer;
+}
+
+.custom-checkbox label:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 18px;
+    height: 18px;
+    background: white;
+    border: 1px solid #bbb;
+    border-radius: 2px;
+    box-sizing: border-box;
+}
+
+.custom-checkbox input[type="checkbox"]:checked + label:before {
+    background: var(--hover-color);
+    border-color: var(--hover-color);
+}
+
+.custom-checkbox input[type="checkbox"]:checked + label:after {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 3px;
+    width: 6px;
+    height: 11px;
+    border: solid #fff;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+}
+
+/* Treeview */
+.tree {
+    --spacing: 2.5rem;
+    --radius: 10px;
+}
+
+.tree summary {
+    cursor: pointer;
+}
+
+.tree details[open] > summary::before {
+    background-position: -20px 0;
+}
+
+/* Top Heading */
+.topHeading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 55px;
+    background: var(--primary-color);
+    border-radius: 5px;
+    padding: 0 20px;
+}
+
+.topHeading .searchlist input {
+    width: 100%;
+    padding-left: 5px;
+    font-size: 17px;
+    border-radius: 5px;
+    border: 1px solid #e7e9ea;
+}
+
+/* Other Styles */
+.div-wrapper {
+    height: 200px;
+    margin-top: 40px;
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+}
