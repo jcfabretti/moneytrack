@@ -7,7 +7,6 @@
 @section('content_header')
 
     <head>
-
         <script src="{{ asset('js/script.js') }}"></script>
         <script src="{{ asset('js/lancamento.js') }}"></script>
         <link rel="stylesheet" type="text/css" href="{{ asset('css/styleForm.css') }}">
@@ -21,11 +20,6 @@
             font-size: 13px;
         }
 
-        /*
-                                                                    --ESTAVA SENDO USADO CSS DO BOOTSTRAP NO INPUT--
-                                                                        class="form-control rounded col-md-3"
-                                                                        class="input-group-text border-0"
-                                                                */
         footer {
             display: flex;
             align-items: center;
@@ -49,66 +43,65 @@
     <body>
         @php
             $selectedValue = session('app.qtyItemsPerPage'); // Get preseted value to list items in page
-            // dd($lancamentos);
         @endphp
 
-  {{-- Linha principal para os filtros e o botão --}}
-    <div class="row align-items-end">
-        {{-- Coluna para o seletor de empresa --}}
-        <div class="col-md-4">
-            <div class="form-group mb-0"> {{-- Removida a margem inferior --}}
-                {{-- Linha interna para alinhar Label e Select --}}
-                <div class="row align-items-center">
-                    <div class="col-auto"> {{-- Coluna para a label --}}
-                        <label for="empresa_nome" class="col-form-label">Selecione Empresa:</label>
-                    </div>
-                    <div class="col"> {{-- Coluna para o select, ocupando o espaço restante --}}
-                        <select class="form-control" id="empresa_nome" name="empresa_nome">
-                            {{-- Opção "Todas as Empresas" --}}
-                            <option value="" {{ ($empresaId == null) ? 'selected' : '' }}>Todas as Empresas</option>
-                            {{-- Itera sobre as empresas e marca a selecionada --}}
-                            @foreach ($EMPRESAS as $empresa)
-                                <option value="{{ $empresa->id }}" {{ ($empresaId == $empresa->id) ? 'selected' : '' }}>
-                                    {{ $empresa->id }}-{{ $empresa->nome }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Coluna para o seletor de data e o checkbox "Todas as Datas" --}}
-        <div class="col-md-5">
-            <div class="form-group mb-0"> {{-- Removida a margem inferior --}}
-                {{-- Linha interna para alinhar Label e Input de Data --}}
-                <div class="row align-items-center">
-                    <div class="col-auto"> {{-- Coluna para a label --}}
-                        <label for="data_selecionada" class="col-form-label">Data:</label>
-                    </div>
-                    <div class="col-6"> {{-- Coluna para o input de data --}}
-                        <input type="date" class="form-control" id="data_selecionada" name="data_selecionada"
-                               value="{{ $inputValueData }}" {{ $isTodasDatasChecked ? 'disabled' : '' }}>
-                    </div>
-                    <div class="col-auto"> {{-- Coluna para o checkbox --}}
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="todas_datas_checkbox" {{ $isTodasDatasChecked ? 'checked' : '' }}>
-                            <label class="form-check-label" for="todas_datas_checkbox">Todas as Datas</label>
+    {{-- Linha principal para os filtros e o botão --}}
+        <div class="row align-items-end">
+            {{-- Coluna para o seletor de empresa --}}
+            <div class="col-md-4">
+                <div class="form-group mb-0"> {{-- Removida a margem inferior --}}
+                    {{-- Linha interna para alinhar Label e Select --}}
+                    <div class="row align-items-center">
+                        <div class="col-auto"> {{-- Coluna para a label --}}
+                            <label for="empresa_nome" class="col-form-label">Selecione Empresa:</label>
+                        </div>
+                        <div class="col"> {{-- Coluna para o select, ocupando o espaço restante --}}
+                            <select class="form-control" id="empresa_nome" name="empresa_nome">
+                                {{-- Opção "Todas as Empresas" --}}
+                                <option value="" {{ ($empresaId == null) ? 'selected' : '' }}>Todas as Empresas</option>
+                                {{-- Itera sobre as empresas e marca a selecionada --}}
+                                @foreach ($empresas as $empresa) {{-- Variável $empresas (minúsculas) --}}
+                                    <option value="{{ $empresa->id }}" {{ ($empresaId == $empresa->id) ? 'selected' : '' }}>
+                                        {{ $empresa->id }}-{{ $empresa->nome }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        {{-- Coluna para o botão Filtrar --}}
-        <div class="col-md-3">
-            <div class="form-group mb-0"> {{-- Removida a margem inferior --}}
-                <button type="button" class="btn btn-primary btn-block" onclick="applyFilters()">
-                    <i class="fas fa-filter"></i> Filtrar
-                </button>
+            {{-- Coluna para o seletor de data e o checkbox "Todas as Datas" --}}
+            <div class="col-md-5">
+                <div class="form-group mb-0"> {{-- Removida a margem inferior --}}
+                    {{-- Linha interna para alinhar Label e Input de Data --}}
+                    <div class="row align-items-center">
+                        <div class="col-auto"> {{-- Coluna para a label --}}
+                            <label for="data_selecionada" class="col-form-label">Data:</label>
+                        </div>
+                        <div class="col-6"> {{-- Coluna para o input de data --}}
+                            <input type="date" class="form-control" id="data_selecionada" name="data_selecionada"
+                                    value="{{ $inputValueData }}" {{ $isTodasDatasChecked ? 'disabled' : '' }}>
+                        </div>
+                        <div class="col-auto"> {{-- Coluna para o checkbox --}}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="todas_datas_checkbox" {{ $isTodasDatasChecked ? 'checked' : '' }}>
+                                <label class="form-check-label" for="todas_datas_checkbox">Todas as Datas</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div> {{-- Fim da linha para os filtros --}}
+
+            {{-- Coluna para o botão Filtrar --}}
+            <div class="col-md-3">
+                <div class="form-group mb-0"> {{-- Removida a margem inferior --}}
+                    <button type="button" class="btn btn-primary btn-block" onclick="applyFilters()">
+                        <i class="fas fa-filter"></i> Filtrar
+                    </button>
+                </div>
+            </div>
+        </div> {{-- Fim da linha para os filtros --}}
 
         <section class="formulario mt-0 pt-0"> <!-- mt-0 pt-0 reduce margin top and padding top to zero -->
             <div class="row mb-3">
@@ -147,15 +140,24 @@
 
 
                             </span>
-                    </tr>
+                        </tr>
 
                 </thead>
                 <!-- *********** LIST BODY ********* here -->
                 <tbody class="table-body-lcto">
+
                     @forelse ($lancamentos as $lancamento)
                         <tr>
                             @php
-                               $cod_categoria=formatarNumeroCategoria( $lancamento->categorias_id );
+                                // Removido o dd() de depuração
+                                // dd($lancamento->categoria?->numero_categoria);
+
+                                // Use o operador null-safe para evitar erro se $lancamento->categoria for null
+                                // E passe o numero_categoria para a função
+                                // Se a sua versão do PHP for < 8.0, use:
+                                // $numeroCategoria = $lancamento->categoria ? $lancamento->categoria->numero_categoria : null;
+                                // $cod_categoria = formatarNumeroCategoria($numeroCategoria);
+                                $cod_categoria = formatarNumeroCategoria($lancamento->categoria?->numero_categoria);
                             @endphp
 
                             <td hidden>{{ $lancamento->id }}</td>
@@ -163,14 +165,20 @@
                             <td>{{ \Carbon\Carbon::parse($lancamento->data_lcto)->format('d/m/Y') }}</td>
                             <td>{{ $lancamento->tipo_conta }}</td>
                             <td>{{ $cod_categoria }}</td>
-                            <td style="max-width: 190px;">{{ $lancamento->LctoPartida->nome }}</td>
-                            <td style="max-width: 190px;">{{ $lancamento->LctoContraPartida->nome }}</td>
+                            {{-- Use null-safe operator para LctoPartida e LctoContraPartida --}}
+                            <td style="max-width: 190px;">{{ $lancamento->LctoPartida?->nome ?? 'N/A' }}</td>
+                            <td style="max-width: 190px;">{{ $lancamento->LctoContraPartida?->nome ?? 'N/A' }}</td>
                             <td>{{ $lancamento->historico }}</td>
-                            <?php
-                            // Formata o valor para o padrão brasileiro (R$ 1.234,56)
-                            $valorFormatado = number_format($lancamento->valor, 2, ',', '.');
-                            $codigoNomeCategoria = formatarNumeroCategoria($lancamento->Categorias->id) . ' - ' . $lancamento->Categorias->nome;
-                            ?>
+                            @php
+                                // Formata o valor para o padrão brasileiro (R$ 1.234,56)
+                                $valorFormatado = number_format($lancamento->valor, 2, ',', '.');
+
+                                // CORREÇÃO: Use a relação 'categoria' e o operador null-safe
+                                // Se a sua versão do PHP for < 8.0, use:
+                                // $codigoNomeCategoria = ($lancamento->categoria ? $lancamento->categoria->numero_categoria . ' - ' . $lancamento->categoria->nome : 'N/A');
+                                $codigoNomeCategoria = ($lancamento->categoria?->numero_categoria ?? '') . ' - ' . ($lancamento->categoria?->nome ?? '');
+                            @endphp
+
                             @if ($valorFormatado < 0)
                                 <td align="right" style="color: red;">{{ $valorFormatado }}</td>
                             @else
@@ -184,8 +192,8 @@
                                         '{{ $lancamento->tipo_docto }}',
                                         '{{ $lancamento->numero_docto }}',
                                         '{{ $lancamento->data_lcto ?? '' }}',
-                                        '{{ $lancamento->LctoPartida->nome ?? '' }}',
-                                        '{{ $lancamento->LctoContraPartida->nome ?? '' }}',
+                                        '{{ $lancamento->LctoPartida?->nome ?? '' }}', {{-- Use null-safe --}}
+                                        '{{ $lancamento->LctoContraPartida?->nome ?? '' }}', {{-- Use null-safe --}}
                                         '{{ $codigoNomeCategoria ?? '' }}',
                                         '{{ $lancamento->historico ?? '' }}',
                                         '{{ $lancamento->unidade ?? '' }}',
@@ -194,12 +202,12 @@
                                         '{{ $lancamento->vencimento ?? '' }}',
                                         '{{ $lancamento->centro_custo ?? '' }}',
                                         '{{ $lancamento->created_at ?? '' }}',
-                                        '{{ $lancamento->usuarioqueCriou->name ?? '' }}',
+                                        '{{ $lancamento->usuarioQueCriou?->name ?? '' }}', {{-- Use null-safe --}}
                                         '{{ $lancamento->updated_at ?? '' }}',
-                                        '{{ $lancamento->usuarioqueAtualizou->name ?? '' }}',
-                                        '{{ $lancamento->origem ?? '' }}'  {{-- REMOVED THE EXTRA COMMA HERE --}}
+                                        '{{ $lancamento->usuarioQueAtualizou?->name ?? '' }}', {{-- Use null-safe --}}
+                                        '{{ $lancamento->origem ?? '' }}'
                                     )"
-                                    {{-- ADDED CLOSING PARENTHESIS HERE FOR onclick attribute --}} data-target="#viewModalLancamento" data-toggle="modal"
+                                    data-target="#viewModalLancamento" data-toggle="modal"
                                     id="openViewModalBtn">
                                     <i class="far fa-eye" title="Consultar" style="color:blue"></i>
                                 </a>
@@ -212,8 +220,8 @@
                                 </a>
 
                                 <a href="#loadDeleteLancamento" class="delete"
-                                    onclick="loadDeleteLancamento('{{ $lancamento->id }}', '{{ $lancamento->numero_docto }}', '{{ $lancamento->LctoPartida->nome ?? '' }}')"
-                                    {{-- ADDED QUOTES FOR STRING PARAMETERS --}} data-toggle="modal" id="openDeleteModalBtn">
+                                    onclick="loadDeleteLancamento('{{ $lancamento->id }}', '{{ $lancamento->numero_docto }}', '{{ $lancamento->LctoPartida?->nome ?? '' }}')" {{-- Use null-safe --}}
+                                    data-toggle="modal" id="openDeleteModalBtn">
                                     <i class="material-icons" data-toggle="tooltip" title="Delete">&#xE872;</i>
                                 </a>
 
@@ -309,7 +317,7 @@
             $('#viewModalLancamento').modal('show');
         }
 
-        //  EDIT MODAL
+        // EDIT MODAL
         function loadEditModal(id) {
             // Limpar mensagens anteriores
             $('#message_update').text('');
@@ -372,7 +380,7 @@
                     $('#historico_update').val(response.historico);
                     $('#unidade_update').val(response.unidade);
                     $('#quantidade_update').val(response.quantidade);
-                    //  $('#deb_cred_update').val(response.deb_cred);
+                    // $('#deb_cred_update').val(response.deb_cred);
 
 
                     $('#valor_update').val(valorFormatado); // Formatar para exibição
@@ -382,7 +390,7 @@
                     $('#vencimento_update').val(response.vencimento);
 
                     // Ajustar visibilidade da categoria/contrapartida, se necessário
-                    //  jsOcultaCategoriaContraPartida($('#tipo_conta_update')[0]);
+                    // jsOcultaCategoriaContraPartida($('#tipo_conta_update')[0]);
                     // Exibir o modal
                     $('#updateModalLancamento').modal('show');
                 },

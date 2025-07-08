@@ -6,8 +6,8 @@ use App\Models\Lancamento;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Redirect;
-use App\models\Empresa;
-use App\models\Categoria;
+use App\Models\Empresa;
+use App\Models\Categoria;
 use App\Models\GrupoEconomico;
 use App\Models\Parceiro;
 use Illuminate\Support\Facades\Auth; // Importante: Adicione esta linha!
@@ -41,10 +41,12 @@ class LancamentoController extends Controller
 
  public function index(Request $request)
     {
+      
         $totalLinhasPagina = Session::get('app.qtyItemsPerPage') ?? 10;
 
         // 1. Obter o ID da Empresa selecionada
         $empresaId = $request->query('empresaId');
+     
         if (empty($empresaId) && Session::has('app.empresa_id')) {
              $empresaId = Session::get('app.empresa_id');
         }
@@ -55,15 +57,15 @@ class LancamentoController extends Controller
         $isTodasDatasChecked = empty($dataSelecionadaParam);
 
         $inputValueData = empty($dataSelecionadaParam) ? Carbon::now()->toDateString() : $dataSelecionadaParam;
+   
+    $lancamentosQuery = Lancamento::with([
+        'LctoPartida:id,nome',
+        'LctoContraPartida:id,nome',
+        'categoria:numero_categoria,nome',
+        'usuarioQueCriou', 
+        'usuarioQueAtualizou',
+    ]);
 
-
-        $lancamentosQuery = Lancamento::with(
-            'LctoPartida:id,nome',
-            'LctoContraPartida:id,nome',
-            'Categoria:id,nome',
-            'usuarioQueCriou',
-            'UsuarioQueAtualizou'
-        );
 
         if (!empty($empresaId)) {
             $lancamentosQuery->where('empresa_id', $empresaId);
@@ -72,13 +74,12 @@ class LancamentoController extends Controller
         if (!empty($dataSelecionadaParam)) {
             $lancamentosQuery->whereDate('data_lcto', $dataSelecionadaParam);
         }
-
-        $lancamentos = $lancamentosQuery->orderBy('updated_at', 'DESC')->paginate($totalLinhasPagina);
-
-        $EMPRESAS = Empresa::all();
+   
+        $lancamentos = $lancamentosQuery->orderBy('updated_at', 'DESC')->paginate($totalLinhasPagina);   
+        $empresas = Empresa::all();
 
         // --- CORREÇÃO AQUI: Adicionar 'inputValueData' ao compact() ---
-        return view('lancamento.indexLancamento', compact('lancamentos', 'EMPRESAS', 'empresaId', 'inputValueData', 'isTodasDatasChecked'));
+        return view('lancamento.indexLancamento', compact('lancamentos', 'empresas', 'empresaId', 'inputValueData', 'isTodasDatasChecked'));
     }
 
     public function listIndex()

@@ -5,7 +5,7 @@
         <tr data-id="{{ $categoria->id }}" data-nivel="1" data-parent-id="0">
             <td class="level-1">
                 <i class="fas fa-plus-circle toggle-icon" data-id="{{ $categoria->id }}"></i>
-                <strong>{{ formatarNumeroCategoria($categoria->id) }} - {{ $categoria->nome }}</strong>
+                <strong>{{formatarNumeroCategoria($categoria->numero_categoria) }} - {{ $categoria->nome }}</strong>
             </td>
             <td>{{ optional($categoria->updated_at)->format('d-m-Y') ?? 'N/A' }}
                 {!! updateMessage($categoria->updated_at) !!}
@@ -31,7 +31,7 @@
                 style="display:none;">
                 <td class="level-2">
                     <i class="fas fa-plus-circle toggle-icon" data-id="{{ $child1->id }}"></i>
-                    <strong>{{ formatarNumeroCategoria($child1->id) }} - {{ $child1->nome }}</strong>
+                    <strong>{{ formatarNumeroCategoria($child1->numero_categoria) }} - {{ $child1->nome }}</strong>
                 </td>
                 <td>{{ optional($child1->updated_at)->format('d-m-Y') ?? 'N/A' }}
                     {!! updateMessage($child1->updated_at) !!}
@@ -56,7 +56,7 @@
                     style="display:none;">
                     <td class="level-3">
                         <i data-id="{{ $child2->id }}"></i>
-                        <li>{{ formatarNumeroCategoria($child2->id) }} - {{ $child2->nome }}</li>
+                        <li>{{ formatarNumeroCategoria($child2->numero_categoria) }} - {{ $child2->nome }}</li>
                     </td>
                     <td>{{ optional($child2->updated_at)->format('d-m-Y') ?? 'N/A' }}
                         {!! updateMessage($child2->updated_at) !!}

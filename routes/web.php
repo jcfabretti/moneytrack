@@ -1,25 +1,56 @@
 <?php
 
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\PlanoContaController;
-use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\CategoriaController;
-use App\Http\Controllers\CategoriaTipoController;
-use App\Http\Controllers\LancamentoController;
-use App\Http\Controllers\ReportController;
-use App\Http\Controllers\TiposPlanoContaController;
-use App\Http\Controllers\FluxoCaixaController;
-use App\Http\Controllers\Api\ChartDataController;
-use App\Models\Categoria;
-use App\Models\CategoriaTipo;
-use App\Models\TiposPlanoConta;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Http\Request;
 
-// Route::get('/', function () { return view('index');});
+// Importar todos os Controllers personalizados que você usa
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\grupoEconomicoController;
+use App\Http\Controllers\PlanoContaController; // Note: Esta estava faltando um 'use'
+use App\Http\Controllers\CategoriaController;
+use App\Http\Controllers\CategoriaTiposController;
+use App\Http\Controllers\CategoriaTipoController; // Note: Esta estava faltando um 'use'
+use App\Http\Controllers\ParceiroController;
+use App\Http\Controllers\EmpresaController;
+use App\Http\Controllers\LancamentoController;
+use App\Http\Controllers\FluxoCaixaController; // Note: Esta estava faltando um 'use'
+use App\Http\Controllers\ReportController;
 
-Auth::routes();
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
+|
+*/
+
+// Rotas públicas (não exigem autenticação)
+Route::get('/', function () {
+    return view('welcome');
+});
+
+
+// Rotas de autenticação do Breeze (MUITO IMPORTANTE manter esta linha)
+require __DIR__.'/auth.php';
+
+
+// GRUPO DE ROTAS QUE EXIGEM AUTENTICAÇÃO
+// A maioria das suas rotas deve estar aqui dentro, pois são funcionalidades do sistema
+Route::middleware('auth')->group(function () {
+
+    // Rotas padrão do Breeze para perfil
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Rota padrão do Breeze para dashboard (manter se o dashboard é a página inicial pós-login)
+    Route::get('/dashboard', function () {
+        return view('dashboard');
+    })->name('dashboard'); // Removi o 'verified' temporariamente se estiver causando problemas, mas pode recolocá-lo.
+
 
 Route::get('/',                  [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 Route::get('/auth/index',        [App\Http\Controllers\HomeController::class, 'indexuser'])->name('auth.indexusers');
@@ -141,10 +172,4 @@ Route::post('/category/store', [LancamentoController::class, 'storeAjax']);
 Route::get('/createrelatorios/{reportName}', [ReportController::class, 'createReport'])->middleware(['auth', 'verified'])->name('create.relatorio');
 Route::get('/relatorios/index', [ReportController::class, 'index'])->middleware(['auth', 'verified'])->name('index.report');
 
-// Exemplo de rota para receber parâmetros via query string (GET)
-// Ex: /gerar-relatorio/Lancamentos?parametro_relatorio_1=valor1&parametro_relatorio_2=valor2
-//Route::get('/gerar-relatorio/{reportName}', function (string $reportName, Request $request) {
-//    $reportParams = $request->query(); // Pega todos os parâmetros da query string como um array
-//    $reportController = new \App\Http\Controllers\ReportController();
-//    return $reportController->createReport($reportName, $reportParams);
-//});
+}); // Fim do grupo de middleware 'auth'

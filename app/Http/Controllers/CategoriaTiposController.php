@@ -8,7 +8,7 @@ use App\Models\Empresa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-class categoriaTiposController extends Controller
+class CategoriaTiposController extends Controller
 {
     /**
      * Display a listing of the resource.

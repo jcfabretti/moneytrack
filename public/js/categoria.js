@@ -312,7 +312,7 @@ function handleCreateCateg(id) {
     // Adiciona o codigo do Plano de Categoria ao codigo
     nivelPai = codigo_planoCategoria + nivelPai;
     codCategoria = codigo_planoCategoria + codCategoria;
-
+    console.log("nivelPai:", nivelPai);
     // Perform AJAX request to fetch categories
     $.ajax({
         url: `/categoria/getcategorias/${codCategoria}/${nivelPai}`,
@@ -322,7 +322,9 @@ function handleCreateCateg(id) {
         },
         success: function (userData) {
             // Assuming the server returns an object with 'id' and 'nome' fields
-            const id = userData.id;
+          console.log(userData);
+            const id = userData.numero_categoria;
+          console.log("categoria pai id:",id);
             const nome = userData.nome;
 
             // Concatenate id and nome

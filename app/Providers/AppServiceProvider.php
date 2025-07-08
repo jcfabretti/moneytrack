@@ -32,7 +32,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if (env(key: 'APP_ENV')!=='local') {
-            URL::forceScheme('schme:https');
+           URL::forceScheme('https');
         }
 
         Paginator::useBootstrapFive();

@@ -9,8 +9,12 @@ class Parceiro extends Model
 {
     use HasFactory;
 
-    protected $table='parceiros';
-   protected $fillable = [
+    protected $table = 'parceiros';
+    protected $primaryKey = 'id'; // Adicionado explicitamente
+    public $incrementing = true; // Adicionado explicitamente
+    protected $keyType = 'int'; // Adicionado explicitamente
+
+    protected $fillable = [
         'nome',
         'nat_jur',
         'tipo_cliente',
@@ -18,7 +22,7 @@ class Parceiro extends Model
         'localidade',
         'status',
     ];
-    
+
     /**
      * The attributes that should be cast.
      *
@@ -28,15 +32,13 @@ class Parceiro extends Model
         'status' => 'boolean', // O 'status' é tinyint(1), pode ser tratado como booleano
     ];
 
-
     public function LctoPartida()
     {
-        return $this->hasMany(Lancamento::class,'conta_partida','id');
+        return $this->hasMany(Lancamento::class, 'conta_partida', 'id');
     }
 
     public function LctoContraPartida()
-        {
-            return $this->hasMany(Lancamento::class,'conta_contrapartida','id');
-        }
-
+    {
+        return $this->hasMany(Lancamento::class, 'conta_contrapartida', 'id');
+    }
 }

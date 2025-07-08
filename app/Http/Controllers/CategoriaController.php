@@ -20,7 +20,13 @@ class CategoriaController extends Controller
         if ($id_tipoCategoria == 0 or $id_tipoCategoria == null) {
             $id_tipoCategoria =  $tipoPlanos->first()->id; // Default para o primeiro registro de tipos de categoria
         }
-        $categorias = Categoria::where('fk_tipocategoria_id', $id_tipoCategoria)->get();
+       // $categorias = Categoria::where('fk_tipocategoria_id', $id_tipoCategoria)->get();
+          // Carrega as categorias de nível 1 e todos os seus filhos recursivamente
+    $categorias = Categoria::with('children')
+                             ->where('fk_tipocategoria_id', $id_tipoCategoria)
+                             ->orderBy('numero_categoria') // Importante para a ordenação da treeview
+                             ->get();
+      
 
         return view('categoria.index', compact('categorias', 'tipoPlanos', 'id_tipoCategoria'));
     }
@@ -76,7 +82,7 @@ class CategoriaController extends Controller
      */
     public function store(Request $request)
     {
- 
+       
         // Validation rules
         $rules = [
             'id' => 'required',
@@ -100,7 +106,7 @@ class CategoriaController extends Controller
         // dd($codCateg);
         // Create a new Categoria instance and fill its attributes
         $newCateg = new Categoria([
-            'id' => $request->tipo_categoria . limparCodigoCategoria($request->categoria_id),
+            'numero_categoria' => $request->tipo_categoria . limparCodigoCategoria($request->categoria_id),
             'nome' => strtoupper($request->nome),
             'categoria_pai' => $request->categoria_pai,
             'nivel' => $request->nivel,
@@ -109,10 +115,11 @@ class CategoriaController extends Controller
  
         // Save the Categoria instance to the database
         $newCateg->save();
-
-        // Redirect to the categoria index route with a success message
-        return redirect()->route('categoria.indexTreeView')
-            ->with('success', 'Categoria cadastrada com sucesso!');
+         
+ 
+    // Redireciona para a rota 'categoria.index' passando o 'tipo_categ' do request
+    return redirect()->route('categoria.index', ['tipo_categ' => $request->tipo_categoria])
+        ->with('success', 'Categoria cadastrada com sucesso!');
     }
 
 
@@ -145,7 +152,7 @@ class CategoriaController extends Controller
             $categ->nome = strtoupper($request->categoria_nome);
             $categ->categoria_pai = $request->categoria_pai;
             $categ->update();
-            return redirect()->route('categoria.indexatreeview')
+            return redirect()->route('categoria.index')
             ->with('Erro:', 'Alteração efetuada !');
             return redirect()->Route('categoria.indextreeview')->with('Errors', 'Alteração Efetuada');
         }
@@ -236,7 +243,7 @@ class CategoriaController extends Controller
     
         // Try to find the category by $id2
         $categPai = Categoria::find($id2);
-    
+
         // If $categPai is found, return the category data
         if ($categPai) {
             return response()->json($categPai);
