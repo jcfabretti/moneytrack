@@ -33,10 +33,9 @@ class EmpresaController extends Controller
     {
         $grupoEcons = GrupoEconomico::all();
         $tiposPlanos = CategoriaTipo::all();
-        $empresas = Empresa::with('grupoEconomico', 'tiposPlanoConta')
-                            ->where('id', '>', 0) // Adiciona a condição id > 0
-                            ->get()
-                            ->sortByDesc('created_at');
+		$empresas = Empresa::with('grupoEconomico', 'tiposPlanoConta')
+                    ->orderBy('nome', 'asc') 
+                    ->get();
 
         return view('empresa.index', compact('empresas', 'grupoEcons', 'tiposPlanos'));
     }

@@ -91,7 +91,7 @@ use Illuminate\Support\Facades\Auth;
                         <a href="" class="edit"
                             onclick="loadEditParceiro({{ $parceiro->id }}, `{{ $parceiro->nome }}`, `{{ $parceiro->nat_jur }}`,
                                    `{{ $parceiro->tipo_cliente }}`, 
-                                   `{{ $parceiro->cod_fiscal }}`,`{{ $parceiro->localidade}}`,`{{ $parceiro->status}}`)"
+                                   `{{ $parceiro->cod_fiscal }}`,`{{ $parceiro->localidade}}`,    {{ json_encode($parceiro->status) }})"
                             data-id="{{ $parceiro->id }}" data-toggle="modal" id="editParceiroBtn">
                             <i class="material-icons" data-toggle="tooltip" title="Alterar">&#xE254;</i></a>
 
@@ -154,7 +154,7 @@ use Illuminate\Support\Facades\Auth;
         $('#editFormParceiro #tipo_cliente').val(tipo_cliente);
         $('#editFormParceiro #edit_cod_fiscal').val(formatCnpjCpf(cod_fiscal));
         $('#editFormParceiro #localidade').val(localidade);
-        $('#editFormParceiro #status').val(status);
+        $('#editFormParceiro #status').val(status ? 1 : 0);
         $('#editModal').modal('show');
     }
 

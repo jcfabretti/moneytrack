@@ -269,7 +269,7 @@ class CategoriaController extends Controller
     public function buscaNomeCategoria($id)
     {
 
-      if ($nomeConta = Categoria::select('nome')->where('id', $id)->firstOrFail()) {
+      if ($nomeConta = Categoria::select('nome')->where('numero_categoria', $id)->firstOrFail()) {
        return response()->json($nomeConta);
       }
       return response()->json([

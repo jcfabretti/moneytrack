@@ -19,8 +19,8 @@ class ProcessFluxoCaixaToValoresMensais extends Command
      */
     protected $signature = 'fluxocaixa:process-monthly
                             {--empresa= : ID da empresa para processar (opcional)}
-                            {--data_inicial= : Data inicial no formato YYYY-MM-DD (padrão: 1º dia do ano atual)}
-                            {--data_final= : Data final no formato YYYY-MM-DD (padrão: último dia do ano atual)}';
+                            {--data_inicial= : Data inicial no formatoYYYY-MM-DD (padrão: 1º dia do ano atual)}
+                            {--data_final= : Data final no formatoYYYY-MM-DD (padrão: último dia do ano atual)}';
 
     /**
      * The console command description.
@@ -36,120 +36,145 @@ class ProcessFluxoCaixaToValoresMensais extends Command
      */
     public function handle()
     {
-        $tipoDadoFluxoCaixa = 'FluxoCaixaCategoria'; // Para linhas de nível de categoria
-        $tipoDadoFluxoCaixaTotal = 'FluxoCaixaTotal'; // Para o total geral do mês
+        // Removido: Log::info('Iniciando o comando fluxocaixa:process-monthly (Detalhado - tipos_planocontas_id dinâmico).');
+        // Removido: $this->info("Iniciando processamento de Fluxo de Caixa (Detalhado - tipos_planocontas_id dinâmico)...");
 
-        // Define o fk_tipocategoria_id para o Fluxo de Caixa (ajuste conforme necessário, ex: 2 para despesas/receitas)
-        // ESTE É O QUARTO PARÂMETRO DA SUA STORED PROCEDURE. AJUSTE PARA O VALOR CORRETO SE NECESSÁRIO!
-        $fkTipoCategoriaId = 2; // Exemplo: ID que representa "Receitas e Despesas"
+        $tipoDadoFluxoCaixa = 'FluxoCaixaCategoria';
+        $tipoDadoFluxoCaixaTotal = 'FluxoCaixaTotal';
 
         // Parâmetros do comando
         $empresaId = $this->option('empresa');
         $dataInicialInput = $this->option('data_inicial');
         $dataFinalInput = $this->option('data_final');
 
-        $this->info("Iniciando processamento de Fluxo de Caixa...");
+        // Removido: Log::info("Parâmetros de entrada: Empresa ID: " . ($empresaId ?? 'Todas'), [ ... ]);
 
         $empresas = new Collection();
 
         if ($empresaId) {
-            $this->info("Tentando encontrar empresa com ID: {$empresaId}");
+            // Removido: Log::info("Tentando encontrar empresa com ID: {$empresaId}");
             $empresa = Empresa::find($empresaId);
             if ($empresa) {
                 $empresas->push($empresa);
-                $this->info("Empresa {$empresa->nome} (ID: {$empresa->id}) encontrada.");
+                // Removido: $this->info("Empresa {$empresa->nome} (ID: {$empresa->id}) encontrada.");
+                // Removido: Log::info("Empresa encontrada: {$empresa->nome} (ID: {$empresa->id}).");
             } else {
                 $this->error("Empresa com ID {$empresaId} não encontrada.");
+                Log::error("Erro: Empresa com ID {$empresaId} não encontrada.");
                 return Command::FAILURE;
             }
         } else {
             $empresas = Empresa::all();
+            // Removido: Log::info('Processando todas as empresas.');
         }
 
         if ($empresas->isEmpty()) {
             $this->error('Nenhuma empresa encontrada para processar.');
+            Log::warning('Nenhuma empresa encontrada para processar.');
             return Command::FAILURE;
         }
 
         foreach ($empresas as $empresa) {
-            $this->info("Processando Fluxo de Caixa para a empresa: {$empresa->nome} (ID: {$empresa->id})");
+            // AQUI ESTÁ A MUDANÇA CRUCIAL: PEGAR O tipos_planocontas_id DA EMPRESA
+            $fkTipoCategoriaIdDaEmpresa = $empresa->tipos_planocontas_id;
+
+            if (is_null($fkTipoCategoriaIdDaEmpresa)) {
+                $this->warn("Empresa {$empresa->nome} (ID: {$empresa->id}) não possui tipos_planocontas_id definido. Pulando.");
+                Log::warning("Empresa {$empresa->id} não possui tipos_planocontas_id definido. Pulando.");
+                continue; // Pula para a próxima empresa
+            }
+
+            // Removido: $this->info("Processando Fluxo de Caixa para a empresa: {$empresa->nome} (ID: {$empresa->id}) com tipos_planocontas_id: {$fkTipoCategoriaIdDaEmpresa}");
+            // Removido: Log::info("Iniciando processamento para empresa: {$empresa->nome} (ID: {$empresa->id}) com tipos_planocontas_id: {$fkTipoCategoriaIdDaEmpresa}.");
 
             // Define o período: se não for passado, usa o ano atual completo
             $dataInicial = $dataInicialInput ? Carbon::parse($dataInicialInput) : Carbon::now()->startOfYear();
             $dataFinal = $dataFinalInput ? Carbon::parse($dataFinalInput) : Carbon::now()->endOfYear();
 
             // Ajuste para garantir que a data inicial e final estejam dentro do mesmo ano fiscal
-            // Se a SP espera um ano completo, ajuste as datas de entrada para abranger o ano
             $dataInicial = $dataInicial->startOfYear();
             $dataFinal = $dataFinal->endOfYear();
 
+            // Removido: Log::info("Período de processamento: Data Inicial: {$dataInicial->toDateString()}, Data Final: {$dataFinal->toDateString()}");
 
             try {
                 // Chama a stored procedure
-                $this->info("Chamando stored procedure com Empresa ID: {$empresa->id}, Data Inicial: {$dataInicial->toDateString()}, Data Final: {$dataFinal->toDateString()}, Tipo Categoria ID: {$fkTipoCategoriaId}");
+                // Removido: $this->info("Chamando stored procedure com Empresa ID: {$empresa->id}, Data Inicial: {$dataInicial->toDateString()}, Data Final: {$dataFinal->toDateString()}, Tipo Categoria ID: {$fkTipoCategoriaIdDaEmpresa}");
+                // Removido: Log::info("Chamando SP 'sp_gerar_fluxo_caixa_agregado' com parâmetros:", [ ... ]);
+
                 $results = DB::select("CALL sp_gerar_fluxo_caixa_agregado(?, ?, ?, ?)", [
                     $empresa->id,
                     $dataInicial->toDateString(),
                     $dataFinal->toDateString(),
-                    $fkTipoCategoriaId
+                    $fkTipoCategoriaIdDaEmpresa
                 ]);
 
+                // Removido: Log::info('Resultado da stored procedure sp_gerar_fluxo_caixa_agregado:', ['count' => count($results), 'first_row_sample' => collect($results)->first()]);
+
                 if (empty($results)) {
-                    $this->warn("Nenhum dado retornado pela stored procedure para empresa {$empresa->nome} no período {$dataInicial->format('Y-m-d')} a {$dataFinal->format('Y-m-d')}.");
+                    $this->warn("Nenhum dado retornado pela stored procedure para empresa {$empresa->nome} no período {$dataInicial->format('Y-m-d')} a {$dataFinal->format('Y-m-d')} com tipos_planocontas_id {$fkTipoCategoriaIdDaEmpresa}.");
+                    Log::info("SP retornou 0 resultados para empresa {$empresa->id} com tipos_planocontas_id {$fkTipoCategoriaIdDaEmpresa}.");
                     continue; // Pula para a próxima empresa
                 }
 
                 // Arrays para armazenar os totais mensais para cálculo do Total Geral
                 $monthlyTotals = array_fill(1, 12, 0.00); // Indexado de 1 a 12 para os meses
 
+                // Limpar a tabela ValoresMensais para esta empresa e período antes de inserir novos dados
+                ValoresMensais::where('empresa_id', $empresa->id)
+                              ->where(DB::raw("SUBSTRING_INDEX(mes_ano, '/', -1)"), $dataInicial->year)
+                              ->whereIn('tipo_dado', [$tipoDadoFluxoCaixa, $tipoDadoFluxoCaixaTotal])
+                              ->delete();
+                // Removido: Log::info('Dados antigos da tabela valores_mensais para a empresa ' . $empresa->id . ' e ano ' . $dataInicial->year . ' (apenas tipos Fluxo de Caixa) foram excluídos.');
+                // Removido: $this->info("Limpando dados antigos para empresa {$empresa->nome} no ano {$dataInicial->year} (apenas tipos Fluxo de Caixa).");
+
+
                 foreach ($results as $row) {
                     $nivel = $row->nivel;
-                    // Certifique-se de que 'id' existe no objeto $row e converta para string se necessário
-                    $categoriaId = property_exists($row, 'id') ? (string)$row->id : ''; 
+                    $categoriaId = property_exists($row, 'id') ? (string)$row->id : '';
                     $nomeCategoria = $row->nome_categoria;
 
                     // Itera sobre os 12 meses retornados pela SP
                     for ($i = 1; $i <= 12; $i++) {
                         $mesFieldName = "mes_" . $i;
                         if (!property_exists($row, $mesFieldName)) {
-                            // Se a SP não retornar todos os meses (mes_1, mes_2, etc.), pular
+                            Log::warning("Coluna {$mesFieldName} não encontrada na linha da SP para categoria {$categoriaId}.");
                             continue;
                         }
                         $valor = (float) $row->$mesFieldName; // Converte para float
 
                         // Calcula o mes_ano a partir da data inicial e do índice do mês
-                        $currentMonth = Carbon::createFromDate($dataInicial->year, $i, 1); // Garante o ano correto e o mês atual
+                        $currentMonth = Carbon::createFromDate($dataInicial->year, $i, 1);
                         $mesAnoFormatado = $currentMonth->format('m/Y');
 
                         // Lógica para extrair o 5º dígito da direita para a esquerda (posição -5, comprimento 1)
-                        $posicaoX = 5; 
+                        $posicaoX = 5;
                         $digitoNaPosicaoX = substr($categoriaId, -$posicaoX, 1);
-                        // Se o categoriaId for muito curto, o substr pode retornar vazio, então garantimos que seja um dígito
                         if (empty($digitoNaPosicaoX) || !is_numeric($digitoNaPosicaoX)) {
-                             $digitoNaPosicaoX = '0'; // Valor padrão se não for um dígito válido ou string muito curta
+                            $digitoNaPosicaoX = '0';
                         }
-
 
                         // NOVO FORMATO PARA item_nome: 'X - Nome da Categoria'
                         $itemNomeFormatado = "{$digitoNaPosicaoX} - {$nomeCategoria}";
 
                         // Grava apenas as linhas de nível 1 (categorias principais)
                         if ($nivel === 1) {
+                            $dataToInsert = [
+                                'empresa_id' => $empresa->id,
+                                'mes_ano' => $mesAnoFormatado,
+                                'tipo_dado' => $tipoDadoFluxoCaixa,
+                                'item_id' => $categoriaId,
+                                'nome_empresa' => $empresa->nome,
+                                'item_nome' => $itemNomeFormatado,
+                                'quantidade_numerica' => null,
+                                'valor_monetario' => $valor,
+                            ];
                             ValoresMensais::updateOrCreate(
-                                [
-                                    'empresa_id' => $empresa->id,
-                                    'mes_ano' => $mesAnoFormatado,
-                                    'tipo_dado' => $tipoDadoFluxoCaixa, // 'FluxoCaixaCategoria'
-                                    'item_id' => $categoriaId, // ID da categoria da SP
-                                ],
-                                [
-                                    'nome_empresa' => $empresa->nome,
-                                    'item_nome' => $itemNomeFormatado, // ATUALIZADO AQUI!
-                                    'quantidade_numerica' => null,
-                                    'valor_monetario' => $valor,
-                                ]
+                                ['empresa_id' => $empresa->id, 'mes_ano' => $mesAnoFormatado, 'tipo_dado' => $tipoDadoFluxoCaixa, 'item_id' => $categoriaId],
+                                $dataToInsert
                             );
-                            $this->info("  -> Gravando Categoria '{$itemNomeFormatado}' para {$mesAnoFormatado}: {$valor}");
+                            // Removido: Log::info("Inserido/Atualizado Categoria '{$itemNomeFormatado}' para {$mesAnoFormatado}: {$valor}", $dataToInsert);
+                            // Removido: $this->info("  -> Gravando Categoria '{$itemNomeFormatado}' para {$mesAnoFormatado}: {$valor}");
 
                             // Soma para o Total Geral do mês (apenas categorias de nível 1 para evitar duplicidade de soma)
                             $monthlyTotals[$i] += $valor;
@@ -162,34 +187,42 @@ class ProcessFluxoCaixaToValoresMensais extends Command
                     $currentMonth = Carbon::createFromDate($dataInicial->year, $i, 1);
                     $mesAnoFormatado = $currentMonth->format('m/Y');
 
+                    $dataToInsertTotal = [
+                        'empresa_id' => $empresa->id,
+                        'mes_ano' => $mesAnoFormatado,
+                        'tipo_dado' => $tipoDadoFluxoCaixaTotal,
+                        'item_id' => null,
+                        'nome_empresa' => $empresa->nome,
+                        'item_nome' => 'Total Geral de Fluxo de Caixa',
+                        'quantidade_numerica' => null,
+                        'valor_monetario' => $totalGeralDoMes,
+                    ];
                     ValoresMensais::updateOrCreate(
-                        [
-                            'empresa_id' => $empresa->id,
-                            'mes_ano' => $mesAnoFormatado,
-                            'tipo_dado' => $tipoDadoFluxoCaixaTotal, // 'FluxoCaixaTotal'
-                            'item_id' => null, // Não se aplica a um total geral
-                        ],
-                        [
-                            'nome_empresa' => $empresa->nome,
-                            'item_nome' => 'Total Geral de Fluxo de Caixa', // Nome para o item total
-                            'quantidade_numerica' => null,
-                            'valor_monetario' => $totalGeralDoMes,
-                        ]
+                        ['empresa_id' => $empresa->id, 'mes_ano' => $mesAnoFormatado, 'tipo_dado' => $tipoDadoFluxoCaixaTotal, 'item_id' => null],
+                        $dataToInsertTotal
                     );
-                    $this->info("  -> Gravando Total Geral de Fluxo de Caixa para {$mesAnoFormatado}: {$totalGeralDoMes}");
+                    // Removido: Log::info("Inserido/Atualizado Total Geral de Fluxo de Caixa para {$mesAnoFormatado}: {$totalGeralDoMes}", $dataToInsertTotal);
+                    // Removido: $this->info("  -> Gravando Total Geral de Fluxo de Caixa para {$mesAnoFormatado}: {$totalGeralDoMes}");
                 }
 
-                $this->info("Dados de Fluxo de Caixa processados e gravados para {$empresa->nome}.");
+                // Removido: $this->info("Dados de Fluxo de Caixa processados e gravados para {$empresa->nome}.");
+                // Removido: Log::info("Processamento de Fluxo de Caixa concluído para empresa {$empresa->id}.");
+
             } catch (\Exception $e) {
                 $this->error("Erro ao processar Fluxo de Caixa para empresa {$empresa->nome}: " . $e->getMessage());
                 Log::error("Erro em ProcessFluxoCaixaToValoresMensais para empresa {$empresa->nome}: " . $e->getMessage(), [
-                        'exception' => $e
-                    ]);
+                    'exception' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString(),
+                    'data' => $request->all(), // Isso pode causar erro se $request não estiver definido
+                ]);
                 return Command::FAILURE;
             }
         }
-        Log::info("Process Fluxo Caixa executado às: " . Carbon::now());
-        $this->info("Processamento de Fluxo de Caixa concluído.");
+        // Removido: $this->info("Processamento de Fluxo de Caixa concluído para todas as empresas.");
+        // Removido: Log::info("Comando fluxocaixa:process-monthly finalizado.");
         return Command::SUCCESS;
     }
 }
+

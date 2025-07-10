@@ -23,18 +23,10 @@ Artisan::command('teste:simples', function () {
 })->purpose('Um comando para testar a descoberta.');
 
 // Seus comandos agendados, agora definidos no routes/console.php
-// CORREÇÃO: Usando o facade Schedule diretamente
-Schedule::command(ProcessLaunchCountToValoresMensais::class)->dailyAt('09:00');
-Schedule::command(ProcessFluxoCaixaToValoresMensais::class)->dailyAt('09:00');
+// CORREÇÃO: Usando o facade Schedule diretamente e everyFiveMinutes()
+Schedule::command(ProcessLaunchCountToValoresMensais::class)->everyFiveMinutes();
+Schedule::command(ProcessFluxoCaixaToValoresMensais::class)->everyFiveMinutes();  
 
-// Ou, se preferir agendar pelo nome da signature (como antes):
-// Schedule::command('lancamentos:process-monthly')->everyMinute();
-// Schedule::command('fluxocaixa:process-monthly')->everyMinute();
-
-// Exemplo da documentação:
-// Schedule::call(function () {
-//     DB::table('recent_users')->delete();
-// })->daily();
-
-// Schedule::command('emails:send Taylor --force')->daily();
-// Schedule::command(SendEmailsCommand::class, ['Taylor', '--force'])->daily();
+// A linha para o worker de fila também deve estar aqui, se você a tinha no Kernel.php
+// Se você não a tinha no Kernel.php e quer que o agendador a dispare, adicione:
+Schedule::command('queue:work --stop-when-empty')->everyMinute();

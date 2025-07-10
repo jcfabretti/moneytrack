@@ -61,7 +61,11 @@
                                             @php
                                                 $valorMes = $resultado->{'mes_' . $i};
                                                 $totalLinha += $valorMes; // Soma o valor do mês ao total da linha.
-                                                $totaisMensais[$i - 1] += $valorMes;
+
+                                                // APENAS SOMA AO TOTAL GERAL SE O NÍVEL FOR 1
+                                                if ($resultado->nivel == 1) {
+                                                    $totaisMensais[$i - 1] += $valorMes;
+                                                }
                                             @endphp
                                             <td class="text-right">{{ number_format($valorMes, 2, ',', '.') }}</td>
                                         @endfor

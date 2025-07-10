@@ -1,15 +1,11 @@
 <?php
 
-
 namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
-use App\Console\Commands\ProcessFluxoCaixaToValoresMensais; // Importa a classe do comando de Fluxo de Caixa
-use App\Console\Commands\ProcessLaunchCountToValoresMensais; // Importa a classe do comando de Lançamentos
-use Illuminate\Contracts\Foundation\Application; // Importa a interface Application
-use Illuminate\Events\Dispatcher; // Importa a classe Dispatcher
-use Illuminate\Container\Container; // Importa a classe Container se não estiver já no namespace global
+// use App\Console\Commands\ProcessFluxoCaixaToValoresMensais; // Descomente se precisar referenciar diretamente
+// use App\Console\Commands\ProcessLaunchCountToValoresMensais; // Descomente se precisar referenciar diretamente
 
 class Kernel extends ConsoleKernel
 {
@@ -19,23 +15,26 @@ class Kernel extends ConsoleKernel
      * @var array
      */
     protected $commands = [
-        ProcessFluxoCaixaToValoresMensais::class,
-        ProcessLaunchCountToValoresMensais::class,
+        // Seus comandos personalizados são listados aqui para que o Artisan os reconheça.
+        // Eles não são agendados automaticamente por estarem aqui.
+        \App\Console\Commands\ProcessFluxoCaixaToValoresMensais::class,
+        \App\Console\Commands\ProcessLaunchCountToValoresMensais::class,
     ];
-
-    // Construtor removido ou sem dd()
-    // public function __construct(Application $app, Dispatcher $events)
-    // {
-    //     dd('Construtor do Kernel foi executado!'); // Linha de depuração
-    //     parent::__construct($app, $events);
-    // }
 
     /**
      * Define the application's command schedule.
      */
     protected function schedule(Schedule $schedule): void
     {
-  
+        // Adicione aqui os comandos que você viu no 'php artisan schedule:list'
+        // e o comando para o worker de fila.
+
+        // Exemplo dos seus comandos agendados (agora rodam a cada 5 minutos)
+        $schedule->command('lancamentos:process-monthly')->everyFiveMinutes(); // Alterado para everyFiveMinutes()
+        $schedule->command('fluxocaixa:process-monthly')->everyFiveMinutes();  // Alterado para everyFiveMinutes()
+
+        // Esta é a linha CRUCIAL para o worker de fila na Hostinger
+        $schedule->command('queue:work --stop-when-empty')->everyMinute();
     }
 
     /**
@@ -43,8 +42,10 @@ class Kernel extends ConsoleKernel
      */
     protected function commands(): void
     {
-        // Ocultado o dd() anterior
-        // $this->load(__DIR__.'/Commands'); // Pode ser comentado ou removido, pois os comandos estão em $commands
+        $this->load(__DIR__.'/Commands'); // Esta linha carrega os comandos da pasta Commands
+                                         // e é o motivo pelo qual seus comandos personalizados
+                                         // são reconhecidos pelo Artisan.
+
         require base_path('routes/console.php');
     }
 }

@@ -22,7 +22,7 @@ class ParceiroController extends Controller
       } else {
 
         $parceiros = Parceiro::where('id', '>', 0) // Adiciona a condição id > 0
-                       ->orderBy('updated_at', 'DESC')
+                       ->orderBy('nome', 'ASC')
                        ->paginate($qtyPerPage);
 
       }
@@ -114,17 +114,23 @@ class ParceiroController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $id) // O ID vem da URL
     {
-    
-  
-        $parceiro = Parceiro::find($request->id);
-        $parceiro->nome   = $request->nome;
-        $parceiro->nat_jur = $request->nat_jur;
+        // CORREÇÃO AQUI: Use o $id da URL para encontrar o parceiro
+        $parceiro = Parceiro::find($id);
+
+        // Verifique se o parceiro foi encontrado antes de tentar atualizar
+        if (!$parceiro) {
+            // Se o parceiro não for encontrado, redirecione com uma mensagem de erro
+            return redirect('/home/showParceiro')->with('Error', 'Parceiro não encontrado para atualização.');
+        }
+
+        $parceiro->nome       = $request->nome;
+        $parceiro->nat_jur    = $request->nat_jur;
         $parceiro->tipo_cliente = $request->tipo_cliente;
-        $parceiro->cod_fiscal = limpa_cpf_cnpj($request->cod_fiscal);
+        $parceiro->cod_fiscal = limpa_cpf_cnpj($request->cod_fiscal); // Certifique-se que limpa_cpf_cnpj está acessível
         $parceiro->localidade = $request->localidade;
-        $parceiro->status = $request->status;    //1-Parceiro ativo 0- Parceiro Inativo
+        $parceiro->status     = $request->status;     
         $parceiro->update();
 
         return redirect('/home/showParceiro')->with('Success', 'Alteração Efetuada');

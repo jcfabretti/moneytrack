@@ -51,6 +51,10 @@ return [
     */
 
     'channels' => [
+      
+      'telescope' => [
+             'driver' => 'telescope',
+         ],
 
         'stack' => [
             'driver' => 'stack',

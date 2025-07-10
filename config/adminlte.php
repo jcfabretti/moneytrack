@@ -439,11 +439,6 @@ return [
                     'url' => 'admin/settings',
                     'icon' => 'fas fa-fw fa-chevron-right',
                 ],
-                [
-                    'text' => 'Novo Usuário',
-                    'url' =>  '/home/registeruser',
-                    'icon' => 'fas fa-fw fa-chevron-right',
-                ],
             ],
         ],
 

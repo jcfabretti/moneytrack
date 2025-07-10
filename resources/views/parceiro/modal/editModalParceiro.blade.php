@@ -1,5 +1,4 @@
-   {{-- ############################################################################################# --}}
-   <!-- EDIT Modal HTML -->
+   <!-- EDIT Modal PARCEIROS -->
    <div class="modal fade" id="editModal" tabindex="-1" role="dialog">
        <div class="modal-dialog" role="document">
            <div class="modal-content">
@@ -60,22 +59,16 @@
                            <input type="text" class="form-control" name="localidade" id="localidade" required>
                        </div>
 
-                       <!--  STATUS ativo/inativo -->
-                       <div>
-                           <div class="form-group">
-                               <label for="entries">Status:</label><br>
-                               <select class="form-select w-100 mySelect" data-ranges='[[1-1,"yellow"], [0-0, "blue"]]'
-                                   name="status" id="status">
-                                   <option value="1" {{ $selectedValue == 'ativo' ? 'selected' : '' }}>
-                                       Ativo
-                                   </option>
-                                   <option value="0" {{ $selectedValue == '0' ? 'selected' : '' }}>
-                                       Desativado
-                                   </option>
-                               </select>
-                           </div>
-
-                       </div>
+                    <!-- STATUS ativo/inativo -->
+                    <div>
+                        <div class="form-group">
+                            <label for="status">Status:</label><br> {{-- for: status --}}
+                            <select class="form-select w-100 mySelect" data-ranges='[[1-1,"yellow"], [0-0, "blue"]]' name="status" id="status"> {{-- ID: status --}}
+							<option value="1" {{ $selectedValue == 1 ? 'selected' : '' }}>Ativo</option>
+							<option value="0" {{ $selectedValue == 0 ? 'selected' : '' }}>Inativo</option>
+                            </select>
+                        </div>
+                    </div>
                </div>
                <div class="modal-footer">
                    <input type="button" class="btn btn-default" data-dismiss="modal" value="Cancelar">
