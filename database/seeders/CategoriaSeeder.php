@@ -31,17 +31,23 @@ class CategoriaSeeder extends Seeder
             'numero_categoria' => '110000',
             'nome' => 'ENTRADAS',
             'categoria_pai' => '0',
-            'nivel' => 0,
+            'nivel' => 1,
             'fk_tipocategoria_id' => 1,
         ]);
         Categoria::factory()->create([
             'numero_categoria' => '120000',
             'nome' => 'SAIDAS',
             'categoria_pai' => '0',
-            'nivel' => 0,
+            'nivel' => 1,
             'fk_tipocategoria_id' => 1,
         ]);
-        
+        Categoria::factory()->create([
+            'numero_categoria' => '130000',
+            'nome' => 'INVESTIMENTOS',
+            'categoria_pai' => '0',
+            'nivel' => 1,
+            'fk_tipocategoria_id' => 1,
+        ]); 
 
     }
 }

@@ -25,7 +25,7 @@ class Lancamento extends Model
     // Se você tem colunas 'created_at' e 'updated_at' no banco de dados e quer que o Laravel as gerencie,
     // então 'public $timestamps' DEVE ser 'true' e você NÃO precisaria de 'created_by'/'updated_by'
     // para timestamps.
-    public $timestamps = false; // Mantenha como false se 'created_by' e 'updated_by' são IDs de usuário.
+    public $timestamps = true; // Mantenha como false se 'created_by' e 'updated_by' são IDs de usuário.
 
     // REMOVIDO: 'created_by' e 'updated_by' são colunas reais do banco de dados,
     // não atributos computados que precisam ser 'appended'.

@@ -12,22 +12,20 @@
             <div class="modal-body">
                 <div class="card shadow-sm my-3" style="background-color: #92AFC2; ">
                     <div class="card-body">
-                        <form id="updateLancamentoForm" method="POST"action="{{ route('lancamento.update') }}">
+                        <form id="updateLancamentoForm" method="POST" action="{{ route('lancamento.update') }}">
                             @csrf
                             @method('PUT') {{-- Adicionado para requisições PUT/PATCH --}}
                             <div class="form-row">
                                 <input type="hidden" name="lcto_id_update" id="lcto_id_update">
-                                <input type="hidden" name="empresa_id_update" id="empresa_id_update"
-                                    value="{{ session('app.empresaId') }}">
-                                <input type="hidden" name="grupo_economico_id" id="grupo_economico_id_update"
-                                    value="{{ session('app.grupoEmpresarial') }}">
-                                <input type="hidden" class="form-control" name="origem" id="origem_update"
-                                    value="Manual">
+                                {{-- Removidos os values do Blade para empresa_id e grupo_economico_id, serão preenchidos via JS --}}
+                                <input type="hidden" name="empresa_id_update" id="empresa_id_update">
+                                <input type="hidden" name="grupo_economico_id_update" id="grupo_economico_id_update">
+                                <input type="hidden" class="form-control" name="origem_update" id="origem_update">
 
                                 <div class="col-md-6 form-group">
                                     <label for="data_lcto_update">Data:</label>
                                     <input type="date" class="form-control" name="data_lcto_update"
-                                        id="data_lcto_update" maxlength="6" required> {{-- O valor será populado via JS --}}
+                                        id="data_lcto_update" maxlength="10" required>
                                 </div>
                                 <div class="col-md-6 form-group">
                                     <label for="tipo_docto_update">Tipo/Nº Documento:</label>
@@ -36,7 +34,7 @@
                                             id="tipo_docto_update" maxlength="10" style="text-transform: uppercase;">
                                         <input type="text" class="form-control col-md-4" name="numero_docto_update"
                                             id="numero_docto_update" maxlength="6" onchange="jsCheckDocto(this)"
-                                            value="" autocomplete="off" required>
+                                            autocomplete="off" required>
                                     </div>
                                 </div>
                             </div>
@@ -44,10 +42,10 @@
                             <div class="form-row">
                                 <div class="col-md-4 form-group"> <label for="tipo_conta_update">Tipo de Conta</label>
                                     <select class="form-control" name="tipo_conta_update" id="tipo_conta_update"
-                                        onchange="jsOcultaCategoriaContraPartida(this)" required>
-                                        <option value="Banco">1-Banco</option>
-                                        <option value="Fornecedor">2-Fornecedor</option>
-                                        <option value="Cliente">3-Cliente</option>
+                                        onchange="jsOcultaCategoriaContraPartida_update()" required>
+                                        <option value="banco">1-Banco</option>
+                                        <option value="fornecedor">2-Fornecedor</option>
+                                        <option value="cliente">3-Cliente</option>
                                     </select>
                                 </div>
 
@@ -55,9 +53,9 @@
                                     <div class="input-group">
                                         <input type="number" class="form-control col-md-3" name="conta_partida_update"
                                             id="conta_partida_update" onchange="jsGetParceiro(this)" maxlength="4"
-                                            value="" required>
+                                            required autocomplete="off">
                                         <input type="text" class="form-control" id="nomePartida"
-                                            name="nomePartida_update" value=""
+                                            name="nomePartida"
                                             style="font-size: 0.9em; font-weight: bold;" readonly>
                                     </div>
                                 </div>
@@ -67,14 +65,14 @@
                                 <div class="col-md-12 form-group">
                                     <label for="categorias_id_update">Categoria:</label>
                                     <div class="input-group">
-                                        <input type="text" class="form-control col-md-3" name="categorias_id_update"
-                                            id="categorias_id_update" onchange="jsGetCategoria(this.value)"
+                                        <input type="text" class="form-control col-md-3" name="categorias_id"
+                                            id="categorias_id" onchange="jsGetCategoria(this.value, $('#codPlanoCategoria_update').val())"
                                             maxlength="5" required>
-                                        <input type="text" class="form-control" name="nomeConta" id="nomeConta"
+                                        <input type="text" class="form-control" name="nomeConta_update" id="nomeConta"
                                             maxlength="6" readonly style="font-size: 0.9em; font-weight: bold;">
                                     </div>
-                                    <input type="hidden" name="codPlanoCategoria_update" id="codPlanoCategoria"
-                                        value="{{ Session::get('app.empresaCodPlanoConta') }}">
+                                    {{-- ID do campo hidden para codPlanoCategoria ajustado --}}
+                                    <input type="hidden" name="codPlanoCategoria_update" id="codPlanoCategoria_update">
                                 </div>
 
                                 {{-- Campo Contrapartida --}}
@@ -83,7 +81,7 @@
                                     <div class="input-group">
                                         <input type="number" class="form-control col-md-3"
                                             name="conta_contrapartida_update" id="conta_contrapartida_update"
-                                            onchange="jsGetContraPartida(this.value)" maxlength="4" required>
+                                            onchange="jsGetContraPartida(this)" maxlength="4" required>
                                         <input type="text" class="form-control" name="nomeContraPartida"
                                             id="nomeContraPartida" style="font-size: 0.9em; font-weight: bold;"
                                             readonly>
@@ -113,16 +111,17 @@
                                 <div class="col-md-6 form-group">
                                     <label for="valor_update">Valor:</label>
                                     <div class="input-group">
-
                                         <input type="text" class="form-control col-md-8" maxlength="15"
                                             name="valor_update" id="valor_update" autocomplete="off"
-                                            onkeydown="handleDeleteClear(event)" oninput="formatMoeda(this)"
-                                            style="direction: rtl;"  style="font-weight: bold;"  required>
-                                       
-                                            <span class="tooltip-container">
+                                            onkeydown="handleDeleteClear(event)"
+                                            oninput="formatValueOnInput(this)"
+                                            onblur="formatAndValidateValor(this)"
+                                            style="direction: rtl; font-weight: bold;" required>
+
+                                        <span class="tooltip-container">
                                             <i class="fa fa-info-circle" style="font-size:24px;color:#138496"aria-hidden="true"></i>
                                             <span class="tooltip-text">1.Débito digite - 099 = 0,99-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br> 2.Credito digite sem sinal 999 = 9,99&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br> 3.Apagar valor DEL </span>
-                                            </span>
+                                        </span>
                                     </div>
                                 </div>
                                 <div class="col-md-6 form-group">
@@ -141,13 +140,12 @@
                                 <div class="col-md-6 form-group"
                                     style="display: flex; justify-content: flex-end; align-items: center; gap: 10px;">
                                     <button type="submit" class="btn btn-success">Atualizar</button>
-                                    {{-- Botão para atualizar --}}
                                     <button type="button" class="btn btn-secondary"
-                                        data-dismiss="modal">Cancelar</button> {{-- Botão para fechar o modal --}}
+                                        data-dismiss="modal">Cancelar</button>
                                 </div>
                                 <div class="col-9 message align-items-start">
-                                    <h4 id="message" style="background-color: rgb(224, 233, 121)"></h4>
-                                    {{-- ID ajustado --}}
+                                    {{-- ID do elemento de mensagem ajustado para ser único no modal de update --}}
+                                    <h4 id="message_update" style="background-color: rgb(224, 233, 121)"></h4>
                                 </div>
                             </div>
                         </form>
@@ -188,32 +186,4 @@
         });
     });
 
-    function jsOcultaCategoriaContraPartida() {
-        // Usa jQuery para obter o valor do tipo de conta
-        var tipoConta = $('#tipo_conta_update').val();
-        var codPlanoCategoria = $('#codPlanoCategoria').val();
-        var semCodCategoria = '99999';
-        // Seleciona o elemento que contém a categoria de contrapartida (assumindo que tem a classe 'categoria-contrapartida')
-        var categoriaContrapartidaContainer = $('.categoria-contrapartida');
-
-        // Se o tipo de conta for 'Banco', exibe a seção
-        if (tipoConta === 'Banco') {
-            categoriaContrapartidaContainer.show(); // jQuery: exibe o elemento (display: block)
-            $('#categorias_id').val('');
-            $('#conta_contrapartida').val('');
-            $('#nomeContraPartida').val('');
-            $('#nomeConta').val('');
-        } else {
-            // Se não for 'Banco', oculta a seção
-            categoriaContrapartidaContainer.hide(); // jQuery: oculta o elemento (display: none)
-
-            // Limpa ou define valores padrão para os campos quando a seção é oculta.
-            // Assumindo que '99999' é um ID de categoria padrão ou "desativado".
-            $('#categorias_id').val(semCodCategoria);
-            $('#conta_contrapartida').val('0');
-
-            // Opcional: Se 'nomePartida' está associado e deve ser limpo/redefinido
-            // $('#nomePartida').val('');
-        }
-    }
 </script>

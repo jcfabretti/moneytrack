@@ -122,9 +122,9 @@ class ProcessFluxoCaixaToValoresMensais extends Command
 
                 // Limpar a tabela ValoresMensais para esta empresa e período antes de inserir novos dados
                 ValoresMensais::where('empresa_id', $empresa->id)
-                              ->where(DB::raw("SUBSTRING_INDEX(mes_ano, '/', -1)"), $dataInicial->year)
-                              ->whereIn('tipo_dado', [$tipoDadoFluxoCaixa, $tipoDadoFluxoCaixaTotal])
-                              ->delete();
+                                  ->where(DB::raw("SUBSTRING_INDEX(mes_ano, '/', -1)"), $dataInicial->year)
+                                  ->whereIn('tipo_dado', [$tipoDadoFluxoCaixa, $tipoDadoFluxoCaixaTotal])
+                                  ->delete();
                 // Removido: Log::info('Dados antigos da tabela valores_mensais para a empresa ' . $empresa->id . ' e ano ' . $dataInicial->year . ' (apenas tipos Fluxo de Caixa) foram excluídos.');
                 // Removido: $this->info("Limpando dados antigos para empresa {$empresa->nome} no ano {$dataInicial->year} (apenas tipos Fluxo de Caixa).");
 
@@ -215,7 +215,7 @@ class ProcessFluxoCaixaToValoresMensais extends Command
                     'file' => $e->getFile(),
                     'line' => $e->getLine(),
                     'trace' => $e->getTraceAsString(),
-                    'data' => $request->all(), // Isso pode causar erro se $request não estiver definido
+                    // 'data' => $request->all(), // <-- LINHA REMOVIDA/COMENTADA
                 ]);
                 return Command::FAILURE;
             }

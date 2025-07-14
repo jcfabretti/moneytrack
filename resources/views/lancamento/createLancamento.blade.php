@@ -103,7 +103,7 @@
                                     <label for="tipo_docto">Tipo/Nº Documento:</label>
                                     <div class="input-group">
                                         <input type="text" class="form-control col-md-4" name="tipo_docto"
-                                            id="tipo_docto" maxlength="10" style="text-transform: uppercase;">
+                                            id="tipo_docto" maxlength="6" style="text-transform: uppercase;">
                                         <input type="text" class="form-control col-md-4" name="numero_docto"
                                             id="numero_docto" maxlength="6" onchange="jsCheckDocto(this)" value=""
                                             autocomplete="off" required>
@@ -116,9 +116,9 @@
                                     <label for="tipo_conta">Tipo de Conta</label>
                                     <select class="form-control" name="tipo_conta" id="tipo_conta"
                                         onchange="jsOcultaCategoriaContraPartida(this)" required>
-                                        <option value="Banco">1-Banco</option>
-                                        <option value="Fornecedor">2-Fornecedor</option>
-                                        <option value="Clienter">3-Cliente</option>
+                                        <option value="banco">1-Banco</option>
+                                        <option value="fornecedor">2-Fornecedor</option>
+                                        <option value="cliente">3-Cliente</option>
                                     </select>
                                 </div>
 
@@ -126,7 +126,7 @@
                                     <label for="conta_partida">Nº da Conta</label>
                                     <div class="input-group">
                                         <input type="number" class="form-control col-md-4" name="conta_partida"
-                                            id="conta_partida" onchange="jsGetParceiro(this.value)" maxlength="4"
+                                            id="conta_partida" onchange="jsGetParceiro(this)" maxlength="4"
                                             value="" required>
                                         <input type="text" class="form-control" id="nomePartida" name="nomePartida"
                                             value="" style="font-size: 0.9em; font-weight: bold;" readonly>
@@ -139,7 +139,7 @@
                                     <label for="categorias_id">Categoria:</label>
                                     <div class="input-group">
                                         <input type="number" class="form-control" name="categorias_id" id="categorias_id"
-                                            onchange="jsGetCategoria(this.value)" maxlength="5" required>
+                                            onchange="jsGetCategoria(this.value,$('#codPlanoCategoria').val())" maxlength="5" required>
                                         <input type="text" class="form-control" name="nomeConta" id="nomeConta"
                                             maxlength="6" readonly style="font-size: 0.9em; font-weight: bold;">
                                     </div>
@@ -152,7 +152,7 @@
                                     <label for="conta_contrapartida">Contrapartida:</label>
                                     <div class="input-group">
                                         <input type="number" class="form-control" name="conta_contrapartida"
-                                            id="conta_contrapartida" onchange="jsGetContraPartida(this.value)"
+                                            id="conta_contrapartida" onchange="jsGetContraPartida(this)"
                                             maxlength="4" required>
                                         <input type="text" class="form-control" name="nomeContraPartida"
                                             id="nomeContraPartida" style="font-size: 0.9em; font-weight: bold;" readonly>
@@ -184,7 +184,8 @@
                                         <input type="text" class="form-control col-md-8" maxlength="15"
                                             name="valor" id="valor" autocomplete="off"
                                             onkeydown="handleDeleteClear(event)" oninput="formatMoeda(this)"
-                                            style="direction: rtl;" style="font-weight: bold;" required>
+                                            onblur="formatAndValidateValor(this)" style="direction: rtl;"
+                                            style="font-weight: bold;" required>
 
                                         <span class="tooltip-container">
                                             <i class="fa fa-info-circle" style="font-size:24px;color:#138496"
@@ -385,13 +386,12 @@
             var codPlanoCategoria = $('#codPlanoCategoria').val();
             var semCodCategoria = '99999';
             var semCodParceiro = '1';
-            console.log(semCodCategoria)
 
             // Seleciona o elemento que contém a categoria de contrapartida (assumindo que tem a classe 'categoria-contrapartida')
             var categoriaContrapartidaContainer = $('.categoria-contrapartida');
 
             // Se o tipo de conta for 'Banco', exibe a seção
-            if (tipoConta === 'Banco') {
+            if (tipoConta === 'banco') {
                 categoriaContrapartidaContainer.show(); // jQuery: exibe o elemento (display: block)
                 $('#categorias_id').val('');
                 $('#conta_contrapartida').val('');
@@ -400,15 +400,74 @@
             } else {
                 // Se não for 'Banco', oculta a seção
                 categoriaContrapartidaContainer.hide(); // jQuery: oculta o elemento (display: none)
-
                 // Limpa ou define valores padrão para os campos quando a seção é oculta.
                 // Assumindo que '99999' é um ID de categoria padrão ou "desativado".
                 $('#categorias_id').val(semCodCategoria);
-                $('#conta_contrapartida').val(semCodParceiro);
-
+                $('#conta_contrapartida').val('1'); // Define um valor padrão       
+                $('#nomeContraPartida').val('Sem Contrapartida'); // Define um valor padrão
                 // Opcional: Se 'nomePartida' está associado e deve ser limpo/redefinido
                 // $('#nomePartida').val('');
             }
         }
+
+/**
+ * Valida o valor do campo de entrada onBlur.
+ * Verifica se o valor é zero ou nulo e exibe uma mensagem de alerta.
+ * Valores negativos são considerados válidos.
+ *
+ * @param {HTMLInputElement} inputElement O elemento input HTML a ser validado.
+ */
+function formatAndValidateValor(inputElement) {
+    let value = inputElement.value;
+
+    // 1. Limpa o valor para conversão numérica
+    // Remove tudo que não é dígito, exceto vírgula e o sinal de menos (para valores negativos)
+    value = value.replace(/[^0-9,-]/g, '');
+    value = value.replace(/\./g, ''); // Remove pontos de milhares para a conversão
+
+    // 2. Converte para número para validação
+    let numericValue;
+    if (value.trim() === '' || value === ',' || value === '-') { // Lida com campo vazio, apenas vírgula ou apenas sinal de menos
+        numericValue = 0.00; // Assume 0.00 para esses casos para a validação de zero/nulo
+    } else {
+        // Substitui vírgula por ponto para parseFloat
+        let cleanedForParse = value.replace(',', '.');
+        numericValue = parseFloat(cleanedForParse);
+    }
+
+    // Se o valor numérico for NaN (Not a Number) após a conversão, assume 0.00
+    if (isNaN(numericValue)) {
+        numericValue = 0.00;
+    }
+
+    // 3. Garante que o valor no input esteja no formato final de moeda (R$ X.XXX,XX)
+    // Isso é importante para o onblur, para que o valor final seja sempre bem formatado.
+    inputElement.value = numericValue.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+
+    // 4. Lógica de Validação e Feedback (usando displayMessage)
+    // Remove classes de validação anteriores do input
+    inputElement.classList.remove('is-invalid', 'is-valid');
+
+    let message = '';
+    let isSuccessMessage = true; // Para o displayMessage
+
+    // Verifica se o valor é zero ou nulo (considerando 0.00 como nulo para este contexto)
+    if (numericValue === 0.00) {
+        message = 'O valor não pode ser zero ou nulo.';
+        isSuccessMessage = false; // Isso é um erro/alerta
+        inputElement.classList.add('is-invalid'); // Feedback visual vermelho
+    } 
+
+    // Exibe a mensagem usando a função global displayMessage
+    if (typeof displayMessage === 'function') {
+        displayMessage(message, isSuccessMessage);
+    } else {
+        console.warn('Função displayMessage não encontrada. Mensagem: ' + message);
+    }
+}
+
     </script>
 @stop

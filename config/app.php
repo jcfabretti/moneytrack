@@ -65,7 +65,7 @@ return [
     |
     */
 
-    'timezone' => env('APP_TIMEZONE', 'Sao Paulo'), // O seu timezone personalizado
+    'timezone' => env('APP_TIMEZONE', 'America/Sao_Paulo'), // O seu timezone personalizado
 
     /*
     |--------------------------------------------------------------------------

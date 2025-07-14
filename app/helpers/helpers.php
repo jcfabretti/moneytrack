@@ -1,7 +1,5 @@
 <?php
 
-use App\Http\Controllers\HomeController;
-use App\Models\Parceiro;
 use Illuminate\Support\Number;
 
 // formatar_cpf_cnpj($doc)
@@ -52,12 +50,49 @@ function removePontosValor($valor){
     return $valor;
    }   
 
-function numero_categoria($codTipoCategoria, $numeroCategoria){
-    $nrCategoria=$codTipoCategoria . $numeroCategoria;
-    if (strlen($nrCategoria)<7){
-        $nrCategoria='0' . $nrCategoria;
+   function cleanCurrencyValue($valor){
+    $valor = trim($valor);
+    if ($valor === null || $valor === 0 || $valor === '0' || $valor === '') {
+        $valor = 0;
+    } else {
+        $valor = str_replace('.', '', $valor);
+        $valor = str_replace(',', '.', $valor);
     }
-    return ($nrCategoria);
+    return $valor;
+   }   
+
+
+
+function checaUnidade($unidade){
+$unidadeTrimed = trim($unidade); // Remove espaços em branco do início/fim
+
+if (empty($unidadeTrimed)) {
+    // Se a unidade estiver vazia (incluindo apenas espaços em branco), defina como 'UND'
+    return 'UND';
+} else {
+    // Caso contrário, use o valor fornecido, em maiúsculas
+    return $unidadeTrimed;
+}
+}
+
+// Função para gerar o número da categoria
+// Exemplo: numero_categoria('1', '1.10.05') -> 011005
+// Exemplo: numero_categoria('2', '1.10.05') -> 021005
+function numero_categoria($codTipoCategoria, $numeroCategoria){
+    // 1. Remove os pontos do $numeroCategoria (ex: "1.10.05" -> "11005")
+    $numeroCategoriaLimpo = str_replace('.', '', $numeroCategoria);
+
+    // 2. Concatena o codTipoCategoria com o numeroCategoria limpo
+    $nrCategoria = $codTipoCategoria . $numeroCategoriaLimpo;
+
+    // 3. Adiciona zero à esquerda se o comprimento total for menor que 7
+    // Isso é para garantir que o formato final seja consistente (ex: 011005)
+    while (strlen($nrCategoria) < 7) { // Ajuste 7 para o comprimento total desejado (ex: 1 + 5 = 6, então 7 para um zero inicial)
+        $nrCategoria = '0' . $nrCategoria;
+    }
+
+    // 4. Retorna o valor como um inteiro, pois a coluna categorias_id no DB deve ser numérica
+    return (int)$nrCategoria;
 }
 
 function numeroConta($numero){

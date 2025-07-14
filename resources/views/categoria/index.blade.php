@@ -6,64 +6,9 @@
     <h1></h1>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <link href="{{ asset('css/categoria.css') }}" rel="stylesheet">
     <script src="{{ asset('js/categoria.js') }}"></script>
-    <style>
-        .modal-footer {
-            background-color: #92AFC2;
-        }
-
-        .modal-header {
-            background-color: #92AFC2;
-            color: white;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th,
-        td {
-            border: 1px solid #ddd;
-            padding: 10px;
-        }
-
-        th {
-            background-color: #143f6b;
-            color: #fff;
-            text-align: left;
-        }
-
-        .level-1 {
-            padding-left: 10px;
-        }
-
-        .level-2 {
-            padding-left: 30px;
-        }
-
-        .level-3 {
-            padding-left: 50px;
-        }
-
-        .action-icons {
-            cursor: pointer;
-            margin-right: 10px;
-            font-size: 18px;
-        }
-
-        .content-wrapper {
-            background-color: #E4EBF3 !important;
-        }
-
-        .action-icons.delete {
-            color: red;
-        }
-
-        .action-icons.edit {
-            color: orange;
-        }
-    </style>
 @stop
 
 @section('content')

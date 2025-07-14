@@ -1,4 +1,10 @@
-console.log("Script lancamento.js loaded successfully");
+// File: public/js/lancamento.js
+// This file contains JavaScript code for handling various functionalities related to financial transactions (lancamentos) in a web application.
+// It includes features like form validation, AJAX requests to fetch partner and category data, and handling user interactions such as key presses and focus changes.
+// It also includes functions to display messages to the user, manage currency formatting, and handle company selection.
+// The code is structured to ensure a smooth user experience when entering and managing financial transactions.
+// This file is part of a larger Laravel application and interacts with various routes and controllers defined in
+
 //-- change tab to enter key for lancamento input --//
 $('body').on('keydown', 'input, select', function (e) {
     if (e.key === "Enter") {
@@ -26,7 +32,8 @@ function jsCheckDocto(numero_docto) {
     return true;
 };
 // Busca nome do Parceiro no CADASTRO DE PARCEIROS
-function jsGetParceiro(codParc) {
+function jsGetParceiro(inputElement) {
+    const codParc = inputElement.value; // Pega o valor do elemento
     // Obtém o elemento de input onde o nome do parceiro será exibido
     const nomePartidaInput = $('#nomePartida');
 
@@ -51,7 +58,6 @@ function jsGetParceiro(codParc) {
         // 'contentType: "application/json"' não é necessário para requisições GET, pois não há corpo de requisição.
         dataType: 'json', // Espera uma resposta JSON do servidor e faz o parse automaticamente
         success: function (response) {
-            console.log("Resposta do servidor (sucesso):", response);
             // Verifica se a resposta e a propriedade 'nome' existem
             if (response && response.nome) {
                 nomePartidaInput.val(response.nome);
@@ -63,7 +69,7 @@ function jsGetParceiro(codParc) {
             }
         },
         error: function (xhr, ajaxOptions, thrownError) {
-            console.error("Erro na requisição AJAX:", xhr.status, thrownError);
+           // console.error("Erro na requisição AJAX:", xhr.status, thrownError);
             nomePartidaInput.val(''); // Limpa o campo de nome em caso de erro
 
             if (xhr.status == 404) {
@@ -88,13 +94,12 @@ function jsGetParceiro(codParc) {
 }
 // Procura o nome da categoria em Categorias
 
-function jsGetCategoria(categ_id) {
-    var codPlanoCategoria = $("#codPlanoCategoria").val();
-    nrCategoria = codPlanoCategoria + categ_id;
-    console.log(nrCategoria);
+function jsGetCategoria(categ_id,codPlanoCategoria) {
+    codCategoria = codPlanoCategoria + categ_id;
+    nrCategoria = categ_id;
 
     $.ajax({
-        url: '/categoria/buscaNomeCategoria/' + nrCategoria,
+        url: '/categoria/getNomeCategoria/' + codCategoria,
         type: 'GET',
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -103,21 +108,22 @@ function jsGetCategoria(categ_id) {
         dataType: 'text',
         success: function (response) {
             var objJSON = JSON.parse(response);
-            nomeConta.value = objJSON.nome;;;
+            nomeConta.value = objJSON.nome;
         },
         error: function (xhr, ajaxOptions, thrownError) {
             if (xhr.status == 404) {
-                displayMessage('Erro:' + formatCodigoCategoria(nrConta) + '- Categoria não cadastrada!', false);
-                document.getElementById('plano_contas_conta').focus();
-                document.getElementById('plano_contas_conta').select();
+               displayMessage('Erro:' + formatCodigoCategoria(nrCategoria) + '- Categoria não cadastrada!', false);
+                nomeConta.value= 'Não Cadastrado';
+                document.getElementById('categorias_id').focus();
+                document.getElementById('categorias_id').select();
                 //$('#plano_contas_conta').focus();
             }
         }
     });
 };
 // Procura nome da conta no PLANO DE CONTAS
-function jsGetContraPartida(nrContraPartida) {
-    console.log(nrContraPartida);
+function jsGetContraPartida(inputElement) { // Agora recebe o elemento input
+    const nrContraPartida = inputElement.value; // Pega o valor do elemento
     $.ajax({
         url: '/parceiro/fetchparceiro/' + nrContraPartida,
         type: 'GET',
@@ -128,17 +134,28 @@ function jsGetContraPartida(nrContraPartida) {
         dataType: 'text',
         success: function (response) {
             var objJSON = JSON.parse(response);
-            nomeContraPartida.value = objJSON.nome;
+            // Assumindo que nomeContraPartida é uma variável global ou um ID
+            // Se for um ID, use jQuery: $('#nomeContraPartida_update').val(objJSON.nome);
+            // Se for um campo irmão do inputElement, você pode navegar no DOM
+            // Por exemplo: $(inputElement).closest('.input-group').find('[name="nomeContraPartida_update"]').val(objJSON.nome);
+            // Para simplicidade, vou usar o ID, mas com o sufixo _update
+            $('#nomeContraPartida').val(objJSON.nome); // Ajuste para o ID correto no modal de update
         },
         error: function (xhr, ajaxOptions, thrownError) {
             if (xhr.status == 404) {
-                displayMessage('Erro:' + ' Parceiro não cadastrado!', false);
-                document.getElementById('conta_contrapartida').focus();
-                document.getElementById('conta_contrapartida').select();
+                displayMessage('Erro: Parceiro não cadastrado!', false);
+                // Usa o inputElement que foi passado para a função
+                $('#nomeContraPartida').val('Não Cadastrado');
+                inputElement.focus();
+                inputElement.select();
+            } else {
+                // Tratar outros erros aqui, se necessário
+              //  console.error("Erro na requisição AJAX para parceiro:", xhr.status, xhr.responseText, thrownError);
+                displayMessage('Erro ao buscar parceiro. Tente novamente.', false);
             }
         }
     });
-};
+}
 
 // DISPLAY messages
 function displayMessage(message, isSuccess = true) {
@@ -147,12 +164,9 @@ function displayMessage(message, isSuccess = true) {
     messageElement.style.color = isSuccess ? 'green' : 'red';
     messageElement.style.textAlign = 'left';
     const audio1 = new Audio('/audio/error-2.mp3');
-    const audio2 = new Audio('/audio/new-notification-7.mp3');
     if (!isSuccess) {
         audio1.play();
-    } else {
-        audio2.play();
-    }
+    } 
 }
 
 // Function to play the error sound
@@ -235,17 +249,15 @@ function selEmpresa() {
 }
 
 function selecionaEmpresa(id) {
-    console.log('selecionaEmpresa:', id);
 
     $.ajax({
         url: `/empresa/empresaselecionada/${id}`, // Ajuste esta URL para sua rota de API
         method: 'GET',
         success: function (response) {
-            console.log(response.valor); // Pega o valor do lançamento (deve ser numérico)
            window.location.reload(); // Recarrega a página para aplicar a mudança
         },
         error: function (xhr) {
-            console.error("Erro ao carregar lançamento:", xhr.responseText);
+           // console.error("Erro ao carregar lançamento:", xhr.responseText);
             $('#message_update').text('Erro ao carregar dados do lançamento.');
         }
     });

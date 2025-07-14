@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\RegisteredUserController;
 
 // Importar todos os Controllers personalizados que você usa
 use App\Http\Controllers\HomeController;
@@ -40,16 +41,17 @@ require __DIR__.'/auth.php';
 // GRUPO DE ROTAS QUE EXIGEM AUTENTICAÇÃO
 // A maioria das suas rotas deve estar aqui dentro, pois são funcionalidades do sistema
 Route::middleware('auth')->group(function () {
-
     // Rotas padrão do Breeze para perfil
+    Route::get('/admin/register', [RegisteredUserController::class, 'create'])->name('admin.register');
+    Route::post('/admin/register', [RegisteredUserController::class, 'store'])->name('admin.register.store');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
+}); // Fim do grupo de middleware 'auth'
     // Rota padrão do Breeze para dashboard (manter se o dashboard é a página inicial pós-login)
     Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard'); // Removi o 'verified' temporariamente se estiver causando problemas, mas pode recolocá-lo.
+        return view('home');
+    })->name('home'); // Removi o 'verified' temporariamente se estiver causando problemas, mas pode recolocá-lo.
 
 
 Route::get('/',                  [App\Http\Controllers\HomeController::class, 'index'])->name('home');
@@ -63,18 +65,14 @@ Route::get('/home/registeruser', [App\Http\Controllers\HomeController::class, 'r
 
 Route::post('/home/saveQtyPerPage', [App\Http\Controllers\HomeController::class, 'saveQtyPerPage'])->name('saveQtyPerPage');
 
+Route::get('notifications/get', [App\Http\Controllers\HomeController::class, 'getNotificationsData']
+)->name('notifications.get');
+
 //#### GRUPO ECONOMICO #############################################################################################################
 Route::get('/grupoeconomico/index',[App\Http\Controllers\grupoEconomicoController::class, 'index'])->name('index.grupoeconomico');
 Route::post('/grupoeconomico/store',  [App\Http\Controllers\grupoEconomicoController::class, 'store'])->name('grupoeconomico.store');
 Route::post('/grupoEconomico/edit',[App\Http\Controllers\grupoEconomicoController::class, 'edit'])->name('grupoeconomico.edit');
 Route::post('/grupoeconomico/destroy',  [App\Http\Controllers\grupoEconomicoController::class, 'destroy'])->name('grupoeconomico.destroy');
-
-//#### PLANO CONTAS #############################################################################################################
-Route::get('/home/planoContas',             [App\Http\Controllers\HomeController::class, 'planoContas'])->name('planoContas');
-
-Route::get('/home/loadIframeTreeview',             [PlanoContaController::class, 'manageIframeCategory'])->name('manageIframeCategory');
-Route::post('/home/add-category',['as'=>'add.category','uses'=>'PlanoContaController@addCategory']);
-Route::post('/home/add-category', [PlanoContaController::class, 'addCategory'])->name('addCategory');
 
 //#### CATEGORIAS #############################################################################################################
 Route::get('/categoria/index/{tipo_categ}',        [App\Http\Controllers\CategoriaController::class, 'index'])->name('categoria.index');
@@ -83,12 +81,11 @@ Route::get('/categoria/treeview-ajax/{idTipoCategParam}', [CategoriaController::
 
 Route::post('/categoria/store', [App\Http\Controllers\CategoriaController::class, 'store'])->name('categoria.store');
 Route::get('/categoria/edit/{id}',        [App\Http\Controllers\CategoriaController::class, 'edit'])->name('edit.categoria');
-Route::pOST('/categoria/update',      [App\Http\Controllers\CategoriaController::class, 'update'])->name('categoria.update');
+Route::post('/categoria/update',      [App\Http\Controllers\CategoriaController::class, 'update'])->name('categoria.update');
 Route::delete('/categoria/destroy/{id}',  [App\Http\Controllers\CategoriaController::class, 'destroy'])->name('categoria.destroy');
 
-Route::get('/categoria/index/getNomeCategoria/{id}',[CategoriaController::class, 'getNomeCategoria']);
+Route::get('/categoria/getNomeCategoria/{id}',[CategoriaController::class, 'getNomeCategoria'])->name('getNomeCategoria');
 Route::get('/categoria/getcategorias/{id1}/{id2}', [CategoriaController::class, 'getCategorias'])->name('getcategorias');
-Route::get('/categoria/buscaNomeCategoria/{id}',[CategoriaController::class, 'buscaNomeCategoria']);
 
 // --------------  Tipos Categoria ---------------------//
 Route::get('/categoria/tipos/index',        [App\Http\Controllers\CategoriaTiposController::class, 'index'])->name('categoria.tipos.index');
@@ -172,4 +169,4 @@ Route::post('/category/store', [LancamentoController::class, 'storeAjax']);
 Route::get('/createrelatorios/{reportName}', [ReportController::class, 'createReport'])->middleware(['auth', 'verified'])->name('create.relatorio');
 Route::get('/relatorios/index', [ReportController::class, 'index'])->middleware(['auth', 'verified'])->name('index.report');
 
-}); // Fim do grupo de middleware 'auth'
+

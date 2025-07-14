@@ -1,6 +1,5 @@
 // Funções para o modelo CATEGORIA
 // ############################################################
-
 // Load Create categoria Modal
 function loadAddCategoria(tipoCategoriaId, selectedTipoCategoriaText) {
     // Verifica se o tipoCategoriaId foi passado
@@ -29,25 +28,21 @@ function loadAddCategoria(tipoCategoriaId, selectedTipoCategoriaText) {
 
 // ############################################################
 // load Modal Edit Categoria
-function loadEditCategoria(id, nome, categoria_pai, nivel) {
-    console.log("loadEditCategoria called with id:", id, "nome:", nome, "categoria_pai:", categoria_pai, "nivel:", nivel);
-
-    // Obtém a referência ao elemento <select>
-    const tipoCategoriaSelect = document.getElementById('tipoCategoria_select');
-
-    // Atribui o valor selecionado ao campo oculto (ou não) do modal
-    // Certifique-se de que o ID do campo no seu modal seja 'tipo_categoria'
-    document.getElementById('tipo_categoria').value = tipoCategoriaSelect.value;
+function loadEditCategoria(id, nome, categoria_pai, nivel,tipoCategoriaId) {
+    $('#tipoCategoria_id').val( tipoCategoriaId); // Seta o tipo de categoria selecionado no modal
 
     const newcode = String(id).slice(-5);
     part1 = newcode.charAt(0);        // First character
     part2 = newcode.substring(1, 3);  // Extracts characters at index 1 and 2
     part3 = newcode.substring(3, 5);  // Extracts characters at index 3 and 4
 
+    if (`${nivel}` == 1) {
+        categoria_pai = tipoCategoriaId +'00000'; // Categoria Pai para nível 1 é sempre 00000
+    }
 
     // Pega o NOME da Categoria Pai
     $.ajax({
-        url: `getNomeCategoria/${categoria_pai}`,
+        url: `/categoria/getNomeCategoria/${categoria_pai}`,
         method: 'GET',
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -55,10 +50,9 @@ function loadEditCategoria(id, nome, categoria_pai, nivel) {
         success: function (userData) {
             // Assuming the server returns an object with 'id' and 'nome' fields
 
-            const idFormated = formatCodigoCategoria(userData.id);
+            const idFormated = formatCodigoCategoria(userData.numero_categoria);
             const nome = userData.nome;
 
-            // Concatenate id and nome
             if (`${nivel}` == 1) {
                 var categoriaPaiDisplay = "0.00.00-GRUPO TOTALIZADOR";
 
@@ -66,8 +60,7 @@ function loadEditCategoria(id, nome, categoria_pai, nivel) {
                 var categoriaPaiDisplay = `${idFormated}-${nome}`;
             }
 
-            $('.modal-body #categoriaPai_legenda').val(categoriaPaiDisplay);
-
+             $('#editCategoria .modal-body #categoriaPai_legenda').val(categoriaPaiDisplay);
             // Remove the error message if the request is successful
             removeErrorMessage();
         },
@@ -143,7 +136,7 @@ function confirmDelete(id) {
 // ###################################################################
 // Formata codigo da categoria
 function formatCodigoCategoria(code) {
-    // formata codigo da categoria com pontos
+   // formata codigo da categoria com pontos
     const newcode = String(code).slice(-5);
     part1 = newcode.charAt(0);        // First character
     part2 = newcode.substring(1, 3);  // Extracts characters at index 1 and 2
@@ -312,7 +305,7 @@ function handleCreateCateg(id) {
     // Adiciona o codigo do Plano de Categoria ao codigo
     nivelPai = codigo_planoCategoria + nivelPai;
     codCategoria = codigo_planoCategoria + codCategoria;
-    console.log("nivelPai:", nivelPai);
+
     // Perform AJAX request to fetch categories
     $.ajax({
         url: `/categoria/getcategorias/${codCategoria}/${nivelPai}`,
@@ -322,9 +315,7 @@ function handleCreateCateg(id) {
         },
         success: function (userData) {
             // Assuming the server returns an object with 'id' and 'nome' fields
-          console.log(userData);
             const id = userData.numero_categoria;
-          console.log("categoria pai id:",id);
             const nome = userData.nome;
 
             // Concatenate id and nome
@@ -377,46 +368,19 @@ function handleCreateCateg(id) {
     });
 }
 
-function recarregarTreeView(selectedTipoCategoriaId) {
-    var treeViewContainer = $('#treeViewContainer'); // Seu container da Tree View
 
-    // Opcional: Mostrar um spinner ou mensagem de carregamento
-    // treeViewContainer.html('<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i> Carregando...</div>');
-    var currentUrl = new URL(window.location.href);
-
-    $.ajax({
-        url: `/categoria/treeview-ajax/${selectedTipoCategoriaId}`, // Use a URL que corresponde à sua rota Laravel
-        method: 'GET',
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function (response) {
-            // AQUI ESTÁ A CORREÇÃO PRINCIP
-            console.log(response);
-
-        $('#tipoCategoria_select').val(selectedTipoCategoriaId);
-            // O 'response' conterá o HTML gerado pela sua view 'categoria.indexTreeView'.
-            // Nós o injetamos no container da Tree View.
-            treeViewContainer.html(response);
-            console.log("Tree View atualizada com sucesso!");
-        },
-        error: function (xhr) {
-            console.error("Erro ao carregar a Tree View:", xhr.responseText);
-            treeViewContainer.html('<div class="alert alert-danger">Erro ao carregar a estrutura de categorias. Por favor, tente novamente.</div>');
-        }
-    });
-}
 
 // Função para formatar o número da categoria
 function formatarNumeroCategoria(id) {
     return id.toString().padStart(4, '0'); // Exemplo: formata 1 como 0001
 }
 
+
 // ########################################################################
 // Bloco principal que é executado quando o DOM está pronto.
 // ESTE É O ÚNICO $(document).ready() QUE DEVE HAVER NESTE ARQUIVO.
 // ########################################################################
-$(document).ready(function () {
+$(function () {
 
     // -------------------------------------------------------------
     // FUNÇÃO AJAX PARA RECARREGAR A TREE VIEW (MOVIDA PARA DENTRO DO ready)
@@ -427,7 +391,6 @@ $(document).ready(function () {
     // MAS, para manter a consistência da refatoração e evitar duplicação,
     // vamos deixá-la aqui e adicionar o "window." prefix.
     function recarregarTreeView(selectedTipoCategoriaId) {
-        console.log('AJAX: recarregarTreeView - ID selecionado:', selectedTipoCategoriaId);
 
         var treeViewContainer = $('#categoria-table');
 
@@ -442,7 +405,6 @@ $(document).ready(function () {
             success: function (response) {
                 if (response && response.trim().length > 0) {
                     treeViewContainer.html(response);
-                    //   console.log("AJAX: Tree View atualizada com sucesso no #categoria-table!");
                 } else {
                     treeViewContainer.html('<tr><td colspan="3" class="text-center py-4">Nenhuma categoria encontrada para o tipo selecionado.</td></tr>');
                     // console.warn("AJAX: Resposta vazia ou sem conteúdo da Tree View.");

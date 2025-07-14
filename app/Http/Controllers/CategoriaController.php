@@ -122,41 +122,28 @@ class CategoriaController extends Controller
         ->with('success', 'Categoria cadastrada com sucesso!');
     }
 
+    public function update(Request $request){
+        // Assumindo que limparCodigoCategoria remove pontos/formatos para obter o ID puro
+        $id = limparCodigoCategoria($request->categoria_id);
+        $codigo = $request->tipoCategoria_id . $id; // Usando tipoCategoria_id do request
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Categoria $categoria)
-    {
-        //
-    }
+        $categ = Categoria::find($codigo);
+        // O valor de tipoCategoria_id é necessário para o redirecionamento em ambos os casos
+        $tipoCategoriaParaRedirecionar = $request->input('tipoCategoria_id');
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Request $request, $id) {}
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request)
-    {
-        $id=limparCodigoCategoria($request->categoria_id);
-   
-        $codigo=$request->tipo_categoria . $id ;        
-        $categ = Categoria::find($codigo); 
         if ($categ == null) {
-             return redirect()->route('categoria.indextreeview')
-            ->with('Erro:', 'Codigo não encontrado!');
+            // Se a categoria não for encontrada, redireciona com o parâmetro tipo_categ
+            return redirect()->route('categoria.index', ['tipo_categ' => $tipoCategoriaParaRedirecionar])
+                             ->with('error', 'Código não encontrado!'); // Use 'error' para mensagens de erro
         } else {
+            // Se a categoria for encontrada e atualizada, redireciona com o parâmetro tipo_categ
             $categ->nome = strtoupper($request->categoria_nome);
             $categ->categoria_pai = $request->categoria_pai;
             $categ->update();
-            return redirect()->route('categoria.index')
-            ->with('Erro:', 'Alteração efetuada !');
-            return redirect()->Route('categoria.indextreeview')->with('Errors', 'Alteração Efetuada');
+
+            return redirect()->route('categoria.index', ['tipo_categ' => $tipoCategoriaParaRedirecionar])
+                             ->with('success', 'Alteração efetuada!'); // Use 'success' para mensagens de sucesso
         }
-    
     }
 
     /**
@@ -182,18 +169,26 @@ class CategoriaController extends Controller
                 if ($qtde > 0) {
                     return response()->json([
                         'status' => '424',
-                        'message' => 'Existe ' . $qtde . ' categorias cadastradas abaixo desta - Exclua antes.'
+                        'message' => 'Este grupo tem ' . $qtde . ' filho(s) abaixo que deve(m) ser excluido(s) antes.'
                     ], 424); // 424 - Failed Dependency
                 }
             }
-    
+
+            $qtdLctos= \App\Models\Lancamento::where('categorias_id', $id)->count();
+            if ($qtdLctos > 0) {
+                return response()->json([
+                    'status' => '424',
+                    'message' => 'Esta categoria possui ' . $qtdLctos . ' lançamento(s) vinculado(s) e não pode ser excluída.'
+                ], 424);
+            }
+
             // Delete the category
- //           $categoria->delete();
-    
+            $categoria->delete();
+  
             // Return a success response
             return response()->json([
                 'status' => '200',
-                'message' => formatarNumeroCategoria($id) . ' - Categoria excluida com sucesso!'
+                'message' => formatarNumeroCategoria($id) . ' - Categoria excluída com sucesso!'
             ], 200);
     
         } catch (\Exception $e) {
@@ -203,21 +198,6 @@ class CategoriaController extends Controller
                 'message' => 'Erro ao excluir esta categoria: ' . $e->getMessage()
             ], 500);
         }
-    }
- 
-    public function getConta($id)
-    {
-     //  $nomeConta = PlanoConta::select('nome')->where('conta', $id)->first();
-       //return response()->json($nomeConta);
-
-      if ($nomeConta = Categoria::select('nome')->where('conta', $id)->firstOrFail()) {
-       return response()->json($nomeConta);
-      }
-      return response()->json([
-        'status' => 404,
-        'message' => 'Conta não Cadastrada!',
-        ]);
-
     }
    
     public function getCategorias($id1, $id2)
@@ -256,26 +236,39 @@ class CategoriaController extends Controller
         ], 404);
     }
 
-    // Busca o nome dados da categoria codigo id
-    public function getNomeCategoria($id)
+    /**
+     * Busca o nome da categoria pelo numero_categoria.
+     * utilizado na digitação de lançamentos e edição de categorias.
+     * @param string $numero_categoria O numero_categoria da categoria a ser buscada.
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getNomeCategoria($numero_categoria)
     {
-      $nomeConta = Categoria::find($id);
-      
-      return response()->json($nomeConta);
+        try {
+            // Tenta encontrar a categoria pelo 'numero_categoria'
+            // Se não encontrar, ModelNotFoundException será lançada
+            $nomeConta = Categoria::select('numero_categoria', 'nome')
+                                  ->where('numero_categoria', $numero_categoria)
+                                  ->firstOrFail();
 
-    }
+            // Se a categoria for encontrada, retorna os dados da categoria
+            return response()->json($nomeConta);
 
-    // utilizado por Digitação de Lançamentos //
-    public function buscaNomeCategoria($id)
-    {
-
-      if ($nomeConta = Categoria::select('nome')->where('numero_categoria', $id)->firstOrFail()) {
-       return response()->json($nomeConta);
-      }
-      return response()->json([
-        'status' => 404,
-        'message' => 'Conta não Cadastrada!',
-        ]);
-
-    }    
+        } catch (ModelNotFoundException $e) {
+            // Captura a exceção se a categoria não for encontrada
+            // Retorna uma resposta JSON com status 404
+            return response()->json([
+                'status' => 404,
+                'message' => 'Conta não Cadastrada!',
+                'error_details' => $e->getMessage() // Opcional: para depuração
+            ], 404); // Adiciona o status HTTP 404
+        } catch (\Exception $e) {
+            // Captura qualquer outra exceção inesperada
+            return response()->json([
+                'status' => 500,
+                'message' => 'Ocorreu um erro interno ao buscar a categoria.',
+                'error_details' => $e->getMessage()
+            ], 500); // Adiciona o status HTTP 500
+        }
+    }   
 }

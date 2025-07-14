@@ -21,7 +21,7 @@ return new class extends Migration
             $table->foreign('grupo_economico_id')->references('id')->on('grupo_economicos');
 
             $table->date('data_lcto');
-            $table->string('tipo_docto',6)->nullable(false);
+            $table->string('tipo_docto',7)->nullable(false);
             $table->string('numero_docto',6)->nullable(false);
            
             $table->enum('tipo_conta', ['banco', 'cliente', 'fornecedor']);
@@ -35,11 +35,11 @@ return new class extends Migration
             $table->bigInteger('conta_contrapartida')->unsigned()->nullable(false);
             $table->foreign('conta_contrapartida')->references('id')->on('parceiros');
             
-            $table->string('historico',20)->nullable(false);
+            $table->string('historico',35)->nullable(false);
             $table->string('unidade',15)->nullable(false);
             $table->float('quantidade',4)->nullable();
 
-            $table->double('valor,2')->nullable(false);
+            $table->double('valor',2)->nullable(false);
             
             $table->string('centro_custo',20)->nullable();
             $table->date('vencimento')->nullable();

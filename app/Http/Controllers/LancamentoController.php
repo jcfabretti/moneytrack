@@ -95,47 +95,119 @@ class LancamentoController extends Controller
         return view('lancamento.createLancamento', compact('empresas', 'categorias'));
     }
 
-    /*** Store a newly created resource in storage. */
+ /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function store(Request $request)
     {
-        try {
-            // Garante que o usuário está autenticado
-            if (!Auth::check()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Usuário não autenticado.',
-                ], 401); // Código 401 para "Unauthorized"
-            }
 
+        //dd($request->all());
+        // Garante que o usuário está autenticado
+        if (!Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuário não autenticado. Por favor, faça login novamente.',
+            ], 401); // Código 401 para "Unauthorized"
+        }
+
+        // 1. Definição das regras de validação
+        $validator = Validator::make($request->all(), [
+            'grupo_economico_id' => 'required|exists:grupo_economicos,id', // Exemplo: valida se existe na tabela
+            'empresa_id' => 'required|exists:empresas,id',
+            'data_lcto' => 'required|date',
+            'tipo_docto' => 'nullable|string|max:6',
+            'numero_docto' => 'nullable|string|max:6',
+            'tipo_conta' => 'required|string|max:10',
+            'conta_partida' => 'required|string|max:6',
+            'conta_contrapartida' => 'required|string|max:6',
+            'historico' => 'required|string|max:40',
+            'unidade' => 'nullable|string|max:10',
+            'quantidade' => [
+                'nullable',
+                'string', // Recebemos como string formatada do frontend
+                function ($attribute, $value, $fail) {
+                    // Usa o helper para limpar o valor antes de validar como numérico
+                    $cleanedValue = cleanCurrencyValue($value);
+                    if (!is_numeric($cleanedValue)) {
+                        $fail("O campo 'quantidade' deve ser um número válido.");
+                    }
+                },
+            ],
+            'valor' => [
+                'required',
+                'string', // Recebemos como string formatada do frontend
+                function ($attribute, $value, $fail) {
+                    // Usa o helper para limpar o valor para validação numérica
+                    $numericValue = cleanCurrencyValue($value);
+
+                    if (!is_numeric($numericValue)) {
+                        $fail("O campo 'valor' deve ser um número válido.");
+                        return;
+                    }
+
+                    // Regra: O valor não pode ser zero ou nulo (0.00)
+                    if ((float) $numericValue === 0.00) {
+                        $fail("O campo 'valor' não pode ser zero ou nulo.");
+                    }
+                    // Valores negativos são permitidos
+                },
+            ],
+            'centro_custo' => 'nullable|string|max:20',
+            'vencimento' => 'nullable|date',
+            'origem' => 'nullable|string|max:20',
+            'categorias_id' => 'required|numeric', // Assumindo que numero_categoria retorna um ID numérico
+        ]);
+
+        // 2. Verifica se a validação falhou
+        if ($validator->fails()) {
+            // Retorna a primeira mensagem de erro de validação
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+            ], 422); // Código 422 para "Unprocessable Entity" (erros de validação)
+        }
+
+        try {
             // Tenta criar o lançamento
-            $lancamento = new Lancamento(); //instancia primeiro
+            $lancamento = new Lancamento();
             $lancamento->grupo_economico_id = $request->grupo_economico_id;
             $lancamento->empresa_id = $request->empresa_id;
             $lancamento->data_lcto = $request->data_lcto;
-            $lancamento->tipo_docto = strtoupper($request->tipo_docto ?? 'LCTO');
+            $lancamento->tipo_docto = \strtoupper($request->tipo_docto ?? 'LCTO');
             $lancamento->numero_docto = $request->numero_docto;
             $lancamento->tipo_conta = $request->tipo_conta;
             $lancamento->conta_partida = $request->conta_partida;
             $lancamento->conta_contrapartida = $request->conta_contrapartida;
-            // $lancamento->plano_contas_conta = numero_categoria($request->codPlanoConta, $request->plano_contas_conta);
+
+            // Assumindo que numero_categoria está acessível
             $lancamento->categorias_id = numero_categoria($request->codPlanoCategoria, $request->categorias_id);
-            $lancamento->historico = strtoupper($request->historico);
-            $lancamento->unidade = strtoupper($request->unidade) ?? 'UND';
-            $lancamento->quantidade = removePontosValor($request->quantidade);
-            $lancamento->valor = removePontosValor($request->valor);
+
+            $lancamento->historico = \strtoupper($request->historico);
+
+            // Assumindo que checaUnidade está acessível e lida com o padrão 'UND'
+            $lancamento->unidade = checaUnidade($request->unidade);
+
+            // Converte valores formatados para numéricos antes de salvar no banco, usando o helper
+            $lancamento->quantidade = cleanCurrencyValue($request->quantidade);
+            $lancamento->valor = cleanCurrencyValue($request->valor);
+
             $lancamento->centro_custo = $request->centro_custo ?? '00000000000000000000';
             $lancamento->vencimento = $request->vencimento;
             $lancamento->origem = $request->origem;
-            $lancamento->created_by = Auth::id();  // Define o created_by
-            $lancamento->updated_by = Auth::id();  // Define o updated_by
+            $lancamento->created_by = Auth::id(); // Define o created_by
+            $lancamento->updated_by = Auth::id(); // Define o updated_by
             $lancamento->save();
 
             return response()->json(['success' => true, 'message' => 'Lançamento gravado com sucesso!']);
+
         } catch (\Exception $e) {
-            // Captura qualquer exceção
+            // Captura qualquer exceção não tratada durante o salvamento
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao gravar lançamento: ' . $e->getMessage(),
+                'message' => 'Erro interno ao gravar lançamento: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -183,38 +255,156 @@ class LancamentoController extends Controller
         ]);
     }
 
+   /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+     /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function update(Request $request)
     {
-
-        $id = $request->lcto_id_update;
-        $lancamento = Lancamento::find($id);
-        if (!$lancamento) {
-            return redirect()->back()->with('error', 'Lançamento não encontrado.');
+        if (!Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuário não autenticado. Por favor, faça login novamente.',
+            ], 401);
         }
 
-        //  $lancamento->grupo_economico_id = $request->grupo_economico_id_update;
-        // $lancamento->empresa_id = $request->empresa_id_update;
-        $lancamento->data_lcto = $request->data_lcto_update;
-        $lancamento->tipo_docto = strtoupper($request->tipo_docto_update ?? 'LCTO');
-        $lancamento->numero_docto = $request->numero_docto_update;
-        $lancamento->tipo_conta = $request->tipo_conta_update;
-        $lancamento->conta_partida = $request->conta_partida_update;
-        $lancamento->conta_contrapartida = $request->conta_contrapartida_update;
-        // $lancamento->plano_contas_conta = numero_categoria($request->codPlanoConta, $request->plano_contas_conta);
-        $lancamento->categorias_id = numero_categoria($request->codPlanoCategoria_update, $request->categorias_id_update);
-        $lancamento->historico = strtoupper($request->historico_update);
-        $lancamento->unidade = strtoupper($request->unidade_update) ?? 'UND';
-        $lancamento->quantidade = removePontosValor($request->quantidade_update);
-        $lancamento->valor = removePontosValor($request->valor_update);
-        $lancamento->centro_custo = $request->centro_custo_update ?? '00000000000000000000';
-        $lancamento->vencimento = $request->vencimento_update;
-        $lancamento->origem = 'Manual'; // Definindo origem como 'Manual'
-        $lancamento->updated_by = Auth::id();  // Define o updated_by
-        $lancamento->update();
+        $validator = Validator::make($request->all(), [
+            'lcto_id_update' => 'required|exists:lancamentos,id',
+            'empresa_id_update' => 'required|exists:empresas,id',
+            'grupo_economico_id_update' => 'required|exists:grupo_economicos,id',
 
-        return redirect()->back()->with('success', 'Doc:' . $request->numero_docto_update . " / " . $request->nomePartida_update . ' - Lançamento Alterado com sucesso!');
+            'data_lcto_update' => 'required|date',
+            'tipo_docto_update' => 'nullable|string|max:10', // Max 10
+            'numero_docto_update' => 'nullable|string|max:50', // Max 50
+            'tipo_conta_update' => 'required|string|max:20', // Max 20
+            'conta_partida_update' => 'required|string|max:50', // Max 50
+            'conta_contrapartida_update' => 'required|string|max:50', // Max 50
+            'historico_update' => 'required|string|max:35', // Max 35
+            'unidade_update' => 'nullable|string|max:10', // Max 10
+            'quantidade_update' => [
+                'nullable',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $cleanedValue = cleanCurrencyValue($value);
+                    if (!is_numeric($cleanedValue)) {
+                        $fail("O campo 'quantidade' deve ser um número válido.");
+                    }
+                },
+            ],
+            'valor_update' => [
+                'required',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $numericValue = cleanCurrencyValue($value);
+                    if (!is_numeric($numericValue)) {
+                        $fail("O campo 'valor' deve ser um número válido.");
+                        return;
+                    }
+                    if ((float) $numericValue === 0.00) {
+                        $fail("O campo 'valor' não pode ser zero ou nulo.");
+                    }
+                },
+            ],
+            'centro_custo_update' => 'nullable|string|max:20', // Max 20
+            'vencimento_update' => 'nullable|date',
+            'origem_update' => 'nullable|string|max:20', // Max 20
+            'categorias_id_update' => [
+                'required',
+                'string',
+                'max:10', // Max 10, para formato X.XX.XX (ex: "100.100.100" tem 11, "1.10.05" tem 6)
+                function ($attribute, $value, $fail) {
+                    if (!preg_match('/^\d+\.\d{2}\.\d{2}$/', $value)) {
+                        $fail("O campo 'categoria' deve estar no formato X.XX.XX.");
+                    }
+                },
+            ],
+            // 'codPlanoCategoria_update' não é validado aqui, pois é derivado no backend
+            'nomePartida_update' => 'nullable|string|max:100', // Max 100
+            'nomeConta_update' => 'nullable|string|max:100', // Max 100
+            'nomeContraPartida_update' => 'nullable|string|max:100', // Max 100
+        ]);
+
+        if ($validator->fails()) {
+            // Log de todos os erros de validação para depuração no backend
+            Log::error('Erros de validação no update de lançamento:', $validator->errors()->all());
+
+            // Retorna TODAS as mensagens de erro de validação
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro(s) de validação. Verifique os campos.', // Mensagem genérica para o usuário
+                'errors' => $validator->errors()->all(), // Retorna todas as mensagens de erro
+            ], 422);
+        }
+
+        try {
+            $id = $request->lcto_id_update;
+            $lancamento = Lancamento::find($id);
+
+            if (!$lancamento) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lançamento não encontrado.',
+                ], 404);
+            }
+
+            // Lógica para derivar codPlanoCategoria a partir do categorias_id existente
+            $codPlanoCategoria = null;
+            if (!empty($lancamento->categorias_id)) {
+                $codPlanoCategoria = substr((string)$lancamento->categorias_id, 0, -5);
+                $codPlanoCategoria = (int)$codPlanoCategoria;
+            }
+            Log::info('codPlanoCategoria derivado do lançamento existente: ' . $codPlanoCategoria);
+
+            $lancamento->grupo_economico_id = $request->grupo_economico_id_update;
+            $lancamento->empresa_id = $request->empresa_id_update;
+            $lancamento->data_lcto = $request->data_lcto_update;
+            $lancamento->tipo_docto = strtoupper($request->tipo_docto_update ?? 'LCTO');
+            $lancamento->numero_docto = $request->numero_docto_update;
+            $lancamento->tipo_conta = $request->tipo_conta_update;
+            $lancamento->conta_partida = $request->conta_partida_update;
+            $lancamento->conta_contrapartida = $request->conta_contrapartida_update;
+
+            if (!empty($codPlanoCategoria) && !empty($request->categorias_id_update)) {
+                $lancamento->categorias_id = numero_categoria($codPlanoCategoria, $request->categorias_id);
+            } else {
+                $lancamento->categorias_id = null;
+                Log::warning('codPlanoCategoria não pôde ser derivado ou categorias_id_update está vazio. categorias_id definido como null.');
+            }
+
+            $lancamento->historico = strtoupper($request->historico_update);
+            $lancamento->unidade = checaUnidade($request->unidade_update);
+            $lancamento->quantidade = cleanCurrencyValue($request->quantidade_update);
+            $lancamento->valor = cleanCurrencyValue($request->valor_update);
+            $lancamento->centro_custo = $request->centro_custo_update ?? '00000000000000000000';
+            $lancamento->vencimento = $request->vencimento_update;
+            $lancamento->origem = 'Manual';
+            $lancamento->updated_by = Auth::id();
+
+            Log::info('Valor de categorias_id antes de salvar: ' . $lancamento->categorias_id);
+
+            $lancamento->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Doc: ' . ($request->numero_docto_update ?? '') . " / " . ($request->nomePartida_update ?? '') . ' - Lançamento Alterado com sucesso!',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erro interno ao alterar lançamento: ' . $e->getMessage() . ' na linha ' . $e->getLine() . ' em ' . $e->getFile());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro interno ao alterar lançamento: ' . $e->getMessage(),
+            ], 500);
+        }
     }
-
     /**
      * Display the specified resource.
      */
@@ -234,19 +424,33 @@ class LancamentoController extends Controller
 
     public function destroy(Request $request)
     {
-        // O ID virá do campo hidden 'lancamento_id' no corpo da requisição POST
-        $lancamentoId = $request->input('delete_lacto_id'); // Ou $request->lancamento_id;
-        // Agora você pode usar $lancamentoId para encontrar e deletar o lançamento
-        $lancamento = Lancamento::find($lancamentoId);
-        $nr_docto = $lancamento->numero_docto ?? '';
-        $partida_nome = $lancamento->LctoPartida ? $lancamento->LctoPartida->nome : '';
-        if ($lancamento) {
-            $lancamento->delete();
-            return redirect()->back()->with('success', 'Doc:' . $nr_docto . " / " . $partida_nome . ' - Lançamento excluído com sucesso!');
+        // Garante que o usuário está autenticado
+        if (!Auth::check()) {
+            return view('auth.login');
         }
 
-        return redirect()->back()->with('error', 'Lançamento não encontrado ou não pôde ser excluído.');
+        // O ID virá do campo hidden 'lancamento_id' no corpo da requisição POST
+        $id = $request->input('lctoId_delete'); // Ou $request->lancamento_id;
+        // Agora você pode usar $lancamentoId para encontrar e deletar o lançamento
+        $lancamento = Lancamento::find($id);
+
+        if (!$lancamento) {
+            return redirect()->back()->with('error', 'Lançamento não encontrado.');
+        }
+        $nr_docto = $lancamento->numero_docto ?? '';
+        $documento = $lancamento->tipo_docto . "-" . $lancamento->numero_docto;
+        $valor = number_format($lancamento->valor ?? 0.00, 2, ',', '.');
+          try{
+            $lancamento->delete();  
+
+            } catch (\Exception $e) {
+                Log::error('Erro ao excluir lançamento: ' . $e->getMessage() . ' na linha ' . $e->getLine() . ' em ' . $e->getFile());
+                return redirect()->back()->with('error', 'Erro ao excluir o lançamento: ' . $e->getMessage());
+            }   
+        
+        return redirect()->back()->with('success', $documento . ' - Lançamento excluído com sucesso!');  
     }
+
 
  public function createImportForm()
     {

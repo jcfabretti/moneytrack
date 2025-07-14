@@ -20,21 +20,19 @@
                                <span id="M_Idmodal-category_name"></span>
                            </strong>
 
-                           <input type="text" class="form-control" name="categoria_id" id="categoria_id"
-                               maxlength="5" readonly>
-
-
+                           <input type="text" class="form-control" name="categoria_id" id="categoria_id">
+                              
                        </div>
 
                        <!-- Categoria PAI -->
                        <div class="form-group">
                            <label>Categoria Pai</label> <strong> <span id="M_Idmodal-category_name"></span>
                            </strong>
-                           <!-- Formated number to user view only -->
+                            <!-- Hidden number to save to database -->
                            <input type="hidden" class="form-control" name="categoria_pai" id="categoria_pai">
-                           <!-- Hidden number to save to database -->
+                            <!-- Formated number to user view only -->
                            <input type="text" class="form-control" name="categoriaPai_legenda"
-                               id="categoriaPai_legenda" maxlength="7" readonly>
+                               id="categoriaPai_legenda" readonly>
                        </div>
 
                        <!--  descrição da categoria -->
@@ -50,7 +48,7 @@
                            <input type="hidden" class="form-control" name="nivel" id="nivel" required>
 
                            <!-- Hidden codigo do TIPO de categoria -->
-                           <input type="hidden" class="form-control" name="tipo_categoria" id="tipo_categoria">
+                            <input type="hidden" class="form-control" name="tipoCategoria_id" id="tipoCategoria_id">
                        </div>
 
                </div>
