@@ -1,0 +1,76 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main # Dispara o deploy quando há um push para a branch 'main'
+            # Se você usa uma branch de deploy diferente (ex: 'production'), altere aqui.
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest # O ambiente de execução para o workflow
+
+    steps:
+    - name: Checkout code # Passo 1: Clona o repositório
+      uses: actions/checkout@v4
+
+    - name: Setup PHP Environment # Passo 2: Configura o PHP para rodar o Composer localmente no runner
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.4.8' # Use a versão do PHP do seu projeto
+        extensions: pdo_mysql, mbstring, dom, gd, xml # Extensões necessárias para 'composer install'
+        coverage: none
+
+    - name: Install Composer Dependencies # Passo 3: Instala as dependências do Composer no runner
+      run: composer install --prefer-dist --no-interaction --optimize-autoloader
+
+    - name: Setup SSH Key # Passo 4: Configura a chave SSH privada para autenticação no servidor de produção
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }} # Chave privada SSH armazenada como GitHub Secret
+
+    - name: Add SSH Known Hosts # Passo 5: Adiciona o host de produção aos 'known_hosts' para evitar avisos de segurança
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+        chmod 600 ~/.ssh/known_hosts # Garante permissões corretas para o arquivo
+
+    - name: Deploy with rsync # Passo 6: Sincroniza os arquivos com o servidor de produção usando rsync
+      run: |
+        # Exclui arquivos e pastas que não devem ser enviados para produção
+        # -avz: archive, verbose, compress
+        # --delete: deleta arquivos no destino que não existem na origem (cuidado com isso!)
+        # --exclude: lista de arquivos/pastas para ignorar
+        rsync -avz --delete \
+          --exclude '.git/' \
+          --exclude '.github/' \
+          --exclude 'node_modules/' \
+          --exclude '.env' \
+          --exclude '.env.example' \
+          --exclude 'storage/*.log' \
+          --exclude 'storage/app/public/reports_temp/' \
+          --exclude 'public/hot' \
+          --exclude 'public/build' \
+          --exclude 'public/mix-manifest.json' \
+          ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}
+
+    - name: Run Post-Deployment Commands # Passo 7: Executa comandos no servidor de produção via SSH
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          cd ${{ secrets.DEPLOY_PATH }}
+
+          # Comandos Laravel pós-deploy (descomente e ajuste conforme sua necessidade)
+          # php artisan migrate --force # CUIDADO: Rodar migrações em produção
+          # php artisan optimize:clear
+          # php artisan config:cache
+          # php artisan route:cache
+          # php artisan view:cache
+          # composer dump-autoload # Se houver alterações no autoloader (ex: novas classes)
+          # php artisan storage:link # Se você usa storage links e eles não persistem
+
+          # Reiniciar PHP-FPM (se você usa Apache/Nginx com PHP-FPM)
+          # sudo systemctl reload php8.3-fpm # Ajuste a versão do PHP
+          # sudo systemctl restart nginx # Ou apache2, se necessário
+
+          echo "Deploy concluído com sucesso!"
+        EOF
