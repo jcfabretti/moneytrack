@@ -3,41 +3,97 @@ name: Deploy to Production
 on:
   push:
     branches:
-      - main # Ou a branch que você usa para deploy, por exemplo, master
+      - main # Dispara o deploy quando há um push para a branch 'main'
 
 jobs:
-  web-deploy:
-    name: Deploy
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: ubuntu-latest # O ambiente de execução para o workflow
+
+    services: # Configura um serviço de banco de dados MySQL para o job
+      mysql:
+        image: mysql:8.0 # Use uma versão do MySQL compatível com seu projeto
+        env:
+          MYSQL_ROOT_PASSWORD: root_password # Senha root para o MySQL de teste
+          MYSQL_DATABASE: test_db          # Nome do banco de dados de teste
+          MYSQL_USER: test_user            # Usuário de teste
+          MYSQL_PASSWORD: test_password    # Senha do usuário de teste
+        ports:
+          - 3306:3306 # Mapeia a porta do MySQL
+        options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=10
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Deploy with rsync
-        uses: easingthemes/ssh-deploy@main
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          ARGS: "-avz --delete"
-          SOURCE: "./"
-          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
-          REMOTE_USER: ${{ secrets.REMOTE_USER }}
-          TARGET: ${{ secrets.DEPLOY_PATH }}
+    - name: Setup PHP Environment
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3' # Use a versão do PHP do seu projeto
+        extensions: pdo_mysql, mbstring, dom, gd, xml # Extensões necessárias
+        coverage: none
 
-      - name: Run post-deploy commands
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.REMOTE_HOST }}
-          username: ${{ secrets.REMOTE_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /home/user/htdocs/srv891877.hstgr.cloud
-            # php artisan optimize:clear
-            # php artisan config:cache
-            # php artisan route:cache
-            # php artisan view:cache
-            # php artisan event:cache
-            # composer dump-autoload
-            # php artisan cache:clear
-            # php artisan queue:restart
-            # php artisan up
+    - name: Copy .env.example and Generate Key # Prepara o ambiente Laravel no runner
+      run: |
+        cp .env.example .env
+        php artisan key:generate
+
+    - name: Configure .env for Tests # Configura o .env para o banco de dados de teste
+      run: |
+        echo "DB_CONNECTION=mysql" >> .env
+        echo "DB_HOST=127.0.0.1" >> .env
+        echo "DB_PORT=3306" >> .env
+        echo "DB_DATABASE=test_db" >> .env
+        echo "DB_USERNAME=test_user" >> .env
+        echo "DB_PASSWORD=test_password" >> .env
+
+    - name: Install Composer Dependencies # Instala as dependências do Composer
+      run: composer install --prefer-dist --no-interaction --optimize-autoloader
+
+    - name: Run Migrations for Tests # Executa as migrações no banco de dados de teste
+      run: php artisan migrate --force
+
+    - name: Setup SSH Key
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Add SSH Known Hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.REMOTE_HOST }} >> ~/.ssh/known_hosts
+        chmod 600 ~/.ssh/known_hosts
+
+    - name: Deploy with rsync
+      run: |
+        rsync -avz --delete \
+          --exclude '.git/' \
+          --exclude '.github/' \
+          --exclude 'node_modules/' \
+          --exclude '.env' \
+          --exclude '.env.example' \
+          --exclude 'storage/*.log' \
+          --exclude 'storage/app/public/reports_temp/' \
+          --exclude 'public/hot' \
+          --exclude 'public/build' \
+          --exclude 'public/mix-manifest.json' \
+          ./ ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:${{ secrets.DEPLOY_PATH }}
+
+    - name: Run Post-Deployment Commands
+      run: |
+        ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
+          cd /home/user/htdocs/srv891877.hstgr.cloud
+
+          # Comandos Laravel pós-deploy (todos comentados ou removidos conforme sua solicitação)
+          # php artisan migrate --force
+          # php artisan optimize:clear
+          # php artisan config:cache
+          # php artisan route:cache
+          # php artisan view:cache
+          # php artisan event:cache
+          # composer dump-autoload
+          # php artisan cache:clear
+          # php artisan queue:restart
+          # php artisan up
+
+          echo "Deploy concluído com sucesso!"
+        EOF
