@@ -1,99 +1,59 @@
-name: Deploy to Production
+name: Deploy via Git Pull
 
 on:
   push:
     branches:
       - main # Dispara o deploy quando há um push para a branch 'main'
+            # Se você usa uma branch de deploy diferente (ex: 'production'), altere aqui.
 
 jobs:
   deploy:
     runs-on: ubuntu-latest # O ambiente de execução para o workflow
 
-    services: # Configura um serviço de banco de dados MySQL para o job
-      mysql:
-        image: mysql:8.0 # Use uma versão do MySQL compatível com seu projeto
-        env:
-          MYSQL_ROOT_PASSWORD: root_password # Senha root para o MySQL de teste
-          MYSQL_DATABASE: test_db          # Nome do banco de dados de teste
-          MYSQL_USER: test_user            # Usuário de teste
-          MYSQL_PASSWORD: test_password    # Senha do usuário de teste
-        ports:
-          - 3306:3306 # Mapeia a porta do MySQL
-        options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=10
-
     steps:
-    - name: Checkout code
+    - name: Checkout code # Passo 1: Clona o repositório (apenas para o runner, não para o deploy)
       uses: actions/checkout@v4
 
-    - name: Setup PHP Environment
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.3' # Use a versão do PHP do seu projeto
-        extensions: pdo_mysql, mbstring, dom, gd, xml # Extensões necessárias
-        coverage: none
-
-    - name: Copy .env.example and Generate Key # Prepara o ambiente Laravel no runner
-      run: |
-        cp .env.example .env
-        php artisan key:generate
-
-    - name: Configure .env for Tests # Configura o .env para o banco de dados de teste
-      run: |
-        echo "DB_CONNECTION=mysql" >> .env
-        echo "DB_HOST=127.0.0.1" >> .env
-        echo "DB_PORT=3306" >> .env
-        echo "DB_DATABASE=test_db" >> .env
-        echo "DB_USERNAME=test_user" >> .env
-        echo "DB_PASSWORD=test_password" >> .env
-
-    - name: Install Composer Dependencies # Instala as dependências do Composer
-      run: composer install --prefer-dist --no-interaction --optimize-autoloader
-
-    - name: Run Migrations for Tests # Executa as migrações no banco de dados de teste
-      run: php artisan migrate --force
-
-    - name: Setup SSH Key
+    - name: Setup SSH Key # Passo 2: Configura a chave SSH privada para autenticação no servidor de produção
       uses: webfactory/ssh-agent@v0.9.0
       with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }} # Chave privada SSH armazenada como GitHub Secret
 
-    - name: Add SSH Known Hosts
+    - name: Add SSH Known Hosts # Passo 3: Adiciona o host de produção aos 'known_hosts' para evitar avisos de segurança
       run: |
         mkdir -p ~/.ssh
         ssh-keyscan -H ${{ secrets.REMOTE_HOST }} >> ~/.ssh/known_hosts
-        chmod 600 ~/.ssh/known_hosts
+        chmod 600 ~/.ssh/known_hosts # Garante permissões corretas para o arquivo
 
-    - name: Deploy with rsync
-      run: |
-        rsync -avz --delete \
-          --exclude '.git/' \
-          --exclude '.github/' \
-          --exclude 'node_modules/' \
-          --exclude '.env' \
-          --exclude '.env.example' \
-          --exclude 'storage/*.log' \
-          --exclude 'storage/app/public/reports_temp/' \
-          --exclude 'public/hot' \
-          --exclude 'public/build' \
-          --exclude 'public/mix-manifest.json' \
-          ./ ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:${{ secrets.DEPLOY_PATH }}
-
-    - name: Run Post-Deployment Commands
+    - name: Execute Git Pull and Post-Deployment Commands # Passo 4: Conecta ao servidor e executa comandos
       run: |
         ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
+          # Navega para a pasta exata do projeto no servidor
           cd /home/user/htdocs/srv891877.hstgr.cloud
 
-          # Comandos Laravel pós-deploy (todos comentados ou removidos conforme sua solicitação)
-          # php artisan migrate --force
-          # php artisan optimize:clear
-          # php artisan config:cache
-          # php artisan route:cache
-          # php artisan view:cache
-          # php artisan event:cache
-          # composer dump-autoload
-          # php artisan cache:clear
-          # php artisan queue:restart
-          # php artisan up
+          # Executa o git pull para baixar as últimas alterações
+          echo "Executando git pull..."
+          git pull origin main # OU a branch que você quer puxar (ex: 'master', 'production')
+
+          # Comandos Laravel pós-pull (essenciais para atualizar o app)
+          #echo "Executando composer install no servidor..."
+          #composer install --no-dev --optimize-autoloader # Instala dependências (se houver novas)
+          
+          echo "Limpando caches do Laravel..."
+          php artisan optimize:clear # Limpa todos os caches
+          php artisan config:cache   # Recria o cache de configuração
+          php artisan route:cache    # Recria o cache de rotas
+          php artisan view:cache     # Recria o cache de views
+          # php artisan event:cache  # Se você usa cache de eventos
+
+          # Se você tem storage links e eles não persistem entre deploys
+          # php artisan storage:link
+
+          # Reiniciar PHP-FPM (se você usa Apache/Nginx com PHP-FPM)
+          # Isso é crucial para que as novas classes e configurações sejam carregadas
+          echo "Reiniciando PHP-FPM e Nginx/Apache..."
+          sudo systemctl reload php8.3-fpm # AJUSTE A VERSÃO DO PHP AQUI (ex: php7.4-fpm, php8.1-fpm)
+          sudo systemctl restart nginx    # OU sudo systemctl restart apache2 (depende do seu servidor web)
 
           echo "Deploy concluído com sucesso!"
         EOF
