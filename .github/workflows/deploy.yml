@@ -18,7 +18,8 @@ jobs:
       uses: webfactory/ssh-agent@v0.9.0
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }} # Chave privada SSH armazenada como GitHub Secret
-
+        ssh-key-passphrase: ${{ secrets.SSH_PASSPHRASE }} 
+        
     - name: Add SSH Known Hosts # Passo 3: Adiciona o host de produção aos 'known_hosts' para evitar avisos de segurança
       run: |
         mkdir -p ~/.ssh
