@@ -202,7 +202,8 @@ class ReportController extends Controller
         try {
             $dbConnectionConfig = $this->getDatabaseConfig();
 
-            $report->process(
+            // Log the command before execution
+            $jasperCommand = $report->process(
                 public_path('reports') . '/' . $fullReportNameJrxml,
                 $fullOutputPdfPath,
                 [
@@ -210,7 +211,11 @@ class ReportController extends Controller
                     'params' => $reportParams, // Usa os parâmetros já criados
                     'db_connection' => $dbConnectionConfig
                 ]
-            )->execute();
+            );
+
+            Log::info('Comando JasperStarter a ser executado:', ['command' => $jasperCommand->getCommand()]);
+
+            $jasperCommand->execute(); // Execute the command after logging it
 
         } catch (\Exception $e) {
             $rawOutput = $report->output();
@@ -286,76 +291,28 @@ class ReportController extends Controller
         $databaseName = env('DB_DATABASE', 'moneytrackstg');
 
         // Construa a URL JDBC completa
-       // $jdbcUrl = 'jdbc:mysql://' . env('DB_HOST', '127.0.0.1') . ':' . env('DB_PORT', '3306') . '/' . $databaseName . '?useUnicode=true&characterEncoding=UTF-8&useSSL=false';
-        $jdbcUrl = '"jdbc:mysql://' . env('DB_HOST', '127.0.0.1') . ':' . env('DB_PORT', '3306') . '/' . $databaseName . '?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC"';
+        // Removidas as aspas duplas extras que causavam problemas na linha de comando
+        $jdbcUrl = 'jdbc:mysql://' . env('DB_HOST', '127.0.0.1') . ':' . env('DB_PORT', '3306') . '/' . $databaseName . '?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC';
 
         // Garanta que o caminho do JDBC dir use barras normais para compatibilidade com a linha de comando
         $jdbcDir = str_replace('\\', '/', base_path() . '/vendor/lavela/phpjasper/bin/jasperstarter/jdbc');
-                            
+                                
         $db_connection = [
             'driver' => 'mysql',
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => '3306',
             'database' => $databaseName,
             'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''), 
+            'password' => '',
             'jdbc_driver' => 'com.mysql.cj.jdbc.Driver',
             'jdbc_url' => $jdbcUrl, // A URL já está completa
             'jdbc_dir' => $jdbcDir,
         ];
 
-
-
+        if (isset($db_connection['password']) && $db_connection['password'] === '') {
+            unset($db_connection['password']);
+        }
 
         return $db_connection;
     }
 }
-/*
-jasperstarter process \
-"C:\laragon\www\moneytrackrep\public\reports/LancamentoPorData.jrxml" \
--f pdf \
--o "C:\laragon\www\moneytrackrep\storage\app/public/reports_temp/1749045362_LancamentoPorData.pdf" \
--P Parameter1="2025-06-04" \
--P Parameter2="2025-05-02" \
--t com.mysql.cj.jdbc.Driver \
--H 127.0.0.1 \
---db-port 3306 \
--n financv2 \
--u root \
---pass SUA_SENHA_AQUI \
---db-driver com.mysql.cj.jdbc.Driver \
---db-url "jdbc:mysql://127.0.0.1:3306/financv2?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC" \
---jdbc-dir "C:\laragon\www\moneytrackrep/vendor/lavela/phpjasper/src/JasperStarter/jdbc"
-
-
-$jasper = new JasperPHP;
-
-$input =  preg_replace('/\.jrxml$/i', '', $reportName) . '.jrxml'; 
-$output = '/your_output_path';
-$extension= 'pdf';
-$locale = 'pt_BR';
-
-$jasper->process(
-    $input,
-    $output,
-    $extension, 
-    [
-        'parameter_1' => 'title',
-        'parameter_2' => 'name',
-    ],
-    [
-        'driver' => 'postgres',
-        'username' => 'DB_USERNAME',
-        'password' => 'DB_PASSWORD',
-        'host' => 'DB_HOST',
-        'database' => 'DB_DATABASE',
-        'schema' => 'DB_SCHEMA',
-        'port' => '5432'
-     ],
-    $locale
-)->execute();
-
-
-https://github.com/PHPJasper/phpjasper/issues/3
- 
-*/
