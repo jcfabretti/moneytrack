@@ -140,8 +140,8 @@ class ReportController extends Controller
     {
         $empresaId = $request->input('empresa_select');
         $empresaNome=$request->input('empresa_nome');
-        $dataInicial = $request->input('lcto_dataInicial');
-        $dataFinal = $request->input('lcto_dataFinal');
+        $dataInicial = Carbon::parse($request->input('lcto_dataInicial'))->format('Y-m-d'); // Formato Y-m-d para DB
+        $dataFinal = Carbon::parse($request->input('lcto_dataFinal'))->format('Y-m-d');     // Formato Y-m-d para DB
         $fkTipoCategoriaId = $request->input('colecaoCategoria_id');
 
         try {
@@ -172,10 +172,10 @@ class ReportController extends Controller
                 }
             }
         // Formate as datas para o formato desejado antes de passá-las para a view
-        $dataInicial =Carbon::parse($request->input('lcto_dataInicial'))->format('d/m/y');
-        $dataFinal =Carbon::parse($request->input('lcto_dataFinal'))->format('d/m/y');
+        $dataInicialDisplay =Carbon::parse($request->input('lcto_dataInicial'))->format('d/m/y');
+        $dataFinalDisplay =Carbon::parse($request->input('lcto_dataFinal'))->format('d/m/y');
 
-            return view('relatorios.fluxocaixa', compact('resultados', 'mesesDisplay','empresaNome','dataInicial', 'dataFinal'));
+            return view('relatorios.fluxocaixa', compact('resultados', 'mesesDisplay','empresaNome','dataInicialDisplay', 'dataFinalDisplay'));
         } catch (\Exception $e) {
             // Em caso de erro, redireciona de volta com uma mensagem de erro
             return redirect()->back()->withInput($request->all())->with('error', 'Erro ao gerar o fluxo de caixa: ' . $e->getMessage());
@@ -202,14 +202,34 @@ class ReportController extends Controller
         try {
             $dbConnectionConfig = $this->getDatabaseConfig();
 
+            // Caminho do executável jasperstarter
+            $jasperExecutablePath = base_path('vendor/lavela/phpjasper/bin/jasperstarter/bin/jasperstarter');
+
+            // As opções de conexão agora refletem o comando manual que funcionou
+            $options = [
+                'format' => ['pdf'],
+                'params' => $reportParams, // Usa os parâmetros já criados
+                'db_connection' => [
+                    'driver'        => 'generic', // <--- ALTERAÇÃO PRINCIPAL: Usar 'generic'
+                    'host'          => $dbConnectionConfig['host'],
+                    'port'          => $dbConnectionConfig['port'],
+                    'database'      => $dbConnectionConfig['database'],
+                    'username'      => $dbConnectionConfig['username'],
+                    'pass'          => $dbConnectionConfig['pass'], // Usar 'pass' para o argumento -p
+                    'jdbc_driver'   => $dbConnectionConfig['jdbc_driver'], // Explicitamente o driver
+                    'jdbc_url'      => $dbConnectionConfig['jdbc_url'], // URL JDBC completa
+                    'jdbc_dir'      => $dbConnectionConfig['jdbc_dir'], // Diretório do driver
+                ],
+                'executable_path' => $jasperExecutablePath,
+            ];
+
+            // Log das opções para depuração
+            Log::info('Opções do JasperStarter a serem usadas:', $options);
+
             $report->process(
                 public_path('reports') . '/' . $fullReportNameJrxml,
                 $fullOutputPdfPath,
-                [
-                    'format' => ['pdf'],
-                    'params' => $reportParams, // Usa os parâmetros já criados
-                    'db_connection' => $dbConnectionConfig
-                ]
+                $options
             )->execute();
 
         } catch (\Exception $e) {
@@ -283,26 +303,33 @@ class ReportController extends Controller
      */
     public function getDatabaseConfig(): array
     {
-        $databaseName = env('DB_DATABASE', 'moneytrackstg');
+        $databaseName = env('DB_DATABASE', 'mtrack'); // Usar 'mtrack' como default
+        $dbHost = env('DB_HOST', '127.0.0.1');
+        $dbPort = env('DB_PORT', '3306');
+        $dbUsername = env('DB_USERNAME', 'fabrettidev'); // Usar 'fabrettidev' como default
+        $dbPassword = env('DB_PASSWORD', ''); // Senha do .env
 
         // Construa a URL JDBC completa
-       // $jdbcUrl = 'jdbc:mysql://' . env('DB_HOST', '127.0.0.1') . ':' . env('DB_PORT', '3306') . '/' . $databaseName . '?useUnicode=true&characterEncoding=UTF-8&useSSL=false';
-        $jdbcUrl = '"jdbc:mysql://' . env('DB_HOST', '127.0.0.1') . ':' . env('DB_PORT', '3306') . '/' . $databaseName . '?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC"';
+        $jdbcUrl = 'jdbc:mysql://' . $dbHost . ':' . $dbPort . '/' . $databaseName . '?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC';
 
         // Garanta que o caminho do JDBC dir use barras normais para compatibilidade com a linha de comando
         $jdbcDir = str_replace('\\', '/', base_path() . '/vendor/lavela/phpjasper/bin/jasperstarter/jdbc');
-                            
+                                
+        // A lógica de escape para Windows foi removida aqui, confiando que o PHPJasper lida com isso.
+        // Se o erro de "serverTimezone não é reconhecido" voltar no Windows, podemos reavaliar.
+
         $db_connection = [
-            'driver' => 'mysql',
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => '3306',
+            'driver' => 'generic', // <--- MUDANÇA AQUI: O tipo de driver principal para o PHPJasper
+            'host' => $dbHost,
+            'port' => $dbPort,
             'database' => $databaseName,
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''), 
-            'jdbc_driver' => 'com.mysql.cj.jdbc.Driver',
-            'jdbc_url' => $jdbcUrl, // A URL já está completa
-            'jdbc_dir' => $jdbcDir,
+            'username' => $dbUsername,
+            'pass' => $dbPassword, // <--- MUDANÇA AQUI: Usar 'pass' para mapear para -p
+            'jdbc_driver' => 'com.mysql.cj.jdbc.Driver', // Driver JDBC Java
+            'jdbc_url' => $jdbcUrl, // URL JDBC completa
+            'jdbc_dir' => $jdbcDir, // Diretório onde o driver .jar está
         ];
+
         return $db_connection;
     }
 }
