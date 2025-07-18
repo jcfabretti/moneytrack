@@ -24,9 +24,9 @@
     LC.empresa_id,
     E.nome AS empresa_nome  
 FROM
-    lancamentos AS LC 
+    moneytrackstg.lancamentos AS LC 
 JOIN
-    empresas AS E ON LC.empresa_id = E.id 
+    moneytrackstg.empresas AS E ON LC.empresa_id = E.id 
 WHERE
     LC.empresa_id = $P{REPORT_EMPRESA} 
     AND LC.data_lcto >= $P{Parameter2}
