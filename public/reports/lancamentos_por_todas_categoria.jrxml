@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.18.1.final using JasperReports Library version 6.18.1-9d75d1969e774d4f179fb3be8401e98a0e6d1611  -->
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="LancamentoPorCateg" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="e2f3eb9b-637a-4aac-ae39-02cbea95fd5c">
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Lancamentos_por_categoria" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="e2f3eb9b-637a-4aac-ae39-02cbea95fd5c">
 	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="MySQLFinancV2"/>
 	<parameter name="Parameter1" class="java.lang.String"/>
@@ -12,29 +12,26 @@
 		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
 	</parameter>
 	<queryString language="SQL">
-		<![CDATA[SELECT
-    LC.data_lcto,
-    LC.numero_docto,
-    LC.historico,
-    LC.valor,
-    LC.empresa_id,
-    LC.categorias_id,
-    E.nome AS empresa_nome,
-    CT.nome AS categoria_nome 
-FROM
-    financv2.lancamentos AS LC
-JOIN
-    financv2.empresas AS E ON LC.empresa_id = E.id
-JOIN
-    financv2.categorias AS CT ON LC.categorias_id = CT.id
-WHERE
-    LC.empresa_id = $P{REPORT_EMPRESA}
-    AND LC.data_lcto >= $P{Parameter2}
-    AND LC.data_lcto <= $P{Parameter1}
+		<![CDATA[SELECT data_lcto,
+	numero_docto,
+	historico,
+	valor,
+	empresa_id,
+	categorias_id,
+	E.nome AS empresa_nome,
+	CT.nome AS categoria_nome
+FROM lancamentos AS LC
+	JOIN empresas AS E ON 
+	 LC.Empresa_id = E.id 
+	JOIN categorias AS CT ON 
+	 LC.categorias_id = CT.numero_categoria 
+WHERE 
+	 LC.empresa_id = $P{REPORT_EMPRESA} 
+	 AND LC.data_lcto >= $P{Parameter1} 
+	 AND LC.data_lcto <= $P{Parameter2} 
 
-ORDER BY
-    CT.nome ASC, 
-    LC.data_lcto ASC]]>
+ORDER BY categoria_nome ASC,
+	LC.data_lcto ASC]]>
 	</queryString>
 	<field name="data_lcto" class="java.sql.Date">
 		<property name="com.jaspersoft.studio.field.name" value="data_lcto"/>
@@ -277,7 +274,7 @@ ORDER BY
 		</band>
 	</detail>
 	<columnFooter>
-		<band height="45" splitType="Stretch"/>
+		<band height="53" splitType="Stretch"/>
 	</columnFooter>
 	<pageFooter>
 		<band height="54" splitType="Stretch"/>

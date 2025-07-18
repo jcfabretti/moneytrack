@@ -21,11 +21,123 @@ class ReportController extends Controller
         return view('relatorios.index-relatorios');
     }
 
+   /**
+     * Gera o relatório com base no tipo selecionado.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
+     */
+    public function generateReport(Request $request)
+    {
+        // Valide os dados da requisição
+        $request->validate([
+            'relatorio_select' => 'required|numeric|min:1|max:4',
+            'empresa_select' => 'nullable|numeric',
+            'lcto_dataInicial' => 'nullable|date',
+            'lcto_dataFinal' => 'nullable|date|after_or_equal:lcto_dataInicial',
+            'categorias_id' => 'nullable|numeric', // Pode ser nulo se 'Todos' for marcado
+            'all_categories_checkbox' => 'nullable|string', // Checkbox envia 'on' ou nada
+            'conta_partida' => 'nullable|numeric',
+            'colecaoCategoria_id' => 'nullable|string', // Adicionado para capturar o codPlanoCategoria
+        ]);
+
+        $reportType = $request->input('relatorio_select');
+        $reportParams = []; // Inicializa o array de parâmetros aqui
+        $reportName = '';   // Inicializa o nome do relatório aqui
+
+        // Parâmetros comuns a todos os relatórios
+        if ($request->filled('empresa_select')) {
+            $reportParams['REPORT_EMPRESA'] = $request->input('empresa_select');
+        }
+        $reportParams['REPORT_IMAGE_DIR'] = str_replace('\\', '/', public_path('images')) . '/';
+
+
+        switch ($reportType) {
+            case '1': // 1. Fluxo de Caixa
+                $fluxoCaixaController = new FluxoCaixaController();
+                return $fluxoCaixaController->gerar($request);
+                break;
+
+            case '2': // 2. Lançamentos por Data
+                $reportName = 'Lancamentos_por_data';
+                // Mapeamento: Parameter2=Data Inicial, Parameter1=Data Final
+                if ($request->filled('lcto_dataInicial')) {
+                    $reportParams['Parameter2'] = $request->input('lcto_dataInicial');
+                }
+                if ($request->filled('lcto_dataFinal')) {
+                    $reportParams['Parameter1'] = $request->input('lcto_dataFinal');
+                }
+                break;
+
+            case '3': // 3. Lançamento por Categoria
+                // Lógica para escolher entre "uma categoria" ou "todas as categorias"
+                if ($request->has('all_categories_checkbox') && $request->input('all_categories_checkbox') === 'on') {
+                    $reportName = 'Lancamentos_por_todas_categoria'; // JRXML para todas as categorias
+                    // Este JRXML não usa Parameter3, então não o adicionamos a $reportParams
+                } else {
+                    $reportName = 'Lancamentos_por_uma_categoria'; // JRXML para uma categoria
+                    // Se o checkbox NÃO foi marcado, a categoria_id é obrigatória
+                    if (!$request->filled('categorias_id')) {
+                        throw ValidationException::withMessages([
+                            'categorias_id' => 'O ID da categoria é obrigatório quando "Todas as Categorias" não está marcado.'
+                        ]);
+                    }
+
+                    // *** LÓGICA DE CONCATENAÇÃO AQUI ***
+                    $codPlanoCategoria = $request->input('colecaoCategoria_id');
+                    $categoriaDigitada = $request->input('categorias_id');
+
+                    // Concatena codPlanoCategoria com o valor digitado da categoria
+                    $reportParams['Parameter3'] = $codPlanoCategoria . $categoriaDigitada;
+                }
+
+                // Parâmetros de data para ambos os relatórios de categoria
+                if ($request->filled('lcto_dataInicial')) {
+                    $reportParams['Parameter1'] = $request->input('lcto_dataInicial');
+                }
+                if ($request->filled('lcto_dataFinal')) {
+                    $reportParams['Parameter2'] = $request->input('lcto_dataFinal');
+                }
+                break;
+
+            case '4': // 4. Movimentação por Categoria-Banco
+                $reportName = 'Movimentacao_por_categoria_banco';
+                // Você precisará definir os parâmetros para este relatório
+                if ($request->filled('lcto_dataInicial')) {
+                    $reportParams['PARAM_DATA_INICIAL'] = $request->input('lcto_dataInicial');
+                }
+                if ($request->filled('lcto_dataFinal')) {
+                    $reportParams['PARAM_DATA_FINAL'] = $request->input('lcto_dataFinal');
+                }
+                if ($request->filled('categorias_id')) {
+                    // Se Movimentacao_por_categoria_banco também usa a concatenação,
+                    // você precisará replicar a lógica de concatenação aqui.
+                    $codPlanoCategoria = $request->input('colecaoCategoria_id');
+                    $categoriaDigitada = $request->input('categorias_id');
+                    $reportParams['PARAM_CATEGORIA'] = $codPlanoCategoria . $categoriaDigitada;
+                }
+                if ($request->filled('conta_partida')) {
+                    $reportParams['PARAM_CONTA'] = $request->input('conta_partida');
+                }
+                break;
+
+            default:
+                return back()->withErrors(['relatorio' => 'Tipo de relatório inválido.']);
+                break;
+        }
+
+        // Se um reportName foi definido, chame generateJasperReport
+        if (!empty($reportName)) {
+            return $this->generateJasperReport($reportName, $reportParams);
+        } else {
+            // Caso nenhum relatório válido tenha sido selecionado/processado
+            return back()->withErrors(['relatorio' => 'Não foi possível determinar o relatório a ser gerado.']);
+        }
+    }
+
+
     public function gerar_fluxo_caixa(Request $request)
     {
-
-        // dd($request);
-
         $empresaId = $request->input('empresa_select');
         $empresaNome=$request->input('empresa_nome');
         $dataInicial = $request->input('lcto_dataInicial');
@@ -70,114 +182,99 @@ class ReportController extends Controller
         }
     }
 
-
-
-    public function createReport(Request $request, string $reportName)
+    protected function generateJasperReport(string $reportName, array $reportParams)
     {
-        // Garante que o nome do arquivo JRXML é completo
         $fullReportNameJrxml = preg_replace('/\.jrxml$/i', '', $reportName) . '.jrxml';
-
-        // Extrai o nome base do relatório, removendo qualquer extensão que possa existir
         $baseReportName = pathinfo($reportName, PATHINFO_FILENAME);
-
-        // Constrói o nome de arquivo único com timestamp e UMA ÚNICA extensão .pdf
-        $timestamp = date('dmY_His'); // Ex: 20250606_154821
+        $timestamp = date('dmY_His');
         $uniquePdfFileName = $baseReportName . '_' . $timestamp;
-        //  $uniquePdfFileName = time() . '_' . $baseReportName;
 
-        // Define o diretório completo onde o PDF será salvo dentro de storage/app/public
         $outputDirectory = storage_path('app/public/reports_temp');
-
-        // Define o caminho completo do arquivo PDF de saída que será passado para PHPJasper
-        $fullOutputPdfPath = $outputDirectory . '/' . $uniquePdfFileName;
-
-        // --- Ajuste 1: Popular $reportParams dinamicamente ---
-        $reportParams = [];
-
-        // Verifica se há parâmetros na query string.
-        // Se a URL for tipo: /createrelatorios/LancamentoPorData?Parameter1=valor1&Parameter2=valor2
-        // ou se for: /createrelatorios/LancamentoPorData?data_inicial=valor&data_final=valor
-        // Ajuste conforme os nomes dos seus parâmetros na URL
-        foreach ($request->query() as $key => $value) {
-            // Você pode adicionar uma lógica aqui para mapear nomes de parâmetros da URL para nomes de parâmetros do JasperReports
-            // Por exemplo, se a URL usa 'data_inicial' e o JRXML usa 'Parameter2'
-            if ($key === 'data_inicial') {
-                $reportParams['Parameter2'] = $value;
-            } elseif ($key === 'data_final') {
-                $reportParams['Parameter1'] = $value;
-            } else {
-                // Se o nome na URL for o mesmo que no JRXML, apenas adicione
-                $reportParams[$key] = $value;
-            }
-        }
-        $reportParams['REPORT_IMAGE_DIR'] = str_replace('\\', '/', public_path('images')) . '/';
-        // $reportParams['REPORT_IMAGE_DIR'] = public_path('images') . '/';
-        //       $reportParams['REPORT_EMPRESA'] = request()->empresa_id ?? '1'; // Use 'default' ou outro valor padrão se não houver empresa na requisição
-
-        Log::info('Parâmetros do relatório a serem usados:', $reportParams);
-        // --- Fim do Ajuste 1 ---
-
-
-        // Garante que o diretório temporário exista
         if (!is_dir($outputDirectory)) {
             mkdir($outputDirectory, 0777, true);
         }
+        $fullOutputPdfPath = $outputDirectory . '/' . $uniquePdfFileName;
+
+        Log::info('Parâmetros do relatório a serem usados:', $reportParams);
+
 
         $report = new PHPJasper();
         try {
+            $dbConnectionConfig = $this->getDatabaseConfig();
+
             $report->process(
-                public_path('reports') . '/' . $fullReportNameJrxml, // Caminho do arquivo JRXML
-                $fullOutputPdfPath, // Passamos o CAMINHO COMPLETO DO ARQUIVO de saída
+                public_path('reports') . '/' . $fullReportNameJrxml,
+                $fullOutputPdfPath,
                 [
                     'format' => ['pdf'],
-                    'params' => $reportParams, // Agora $reportParams será [] ou conterá os parâmetros da URL
-                    'db_connection' => $this->getDatabaseConfig()
+                    'params' => $reportParams, // Usa os parâmetros já criados
+                    'db_connection' => $dbConnectionConfig
                 ]
-            )->execute(); // Execute o comando após o processamento
+            )->execute();
 
         } catch (\Exception $e) {
+            $rawOutput = $report->output();
+            $cleanedOutput = mb_convert_encoding($rawOutput, 'UTF-8', 'UTF-8');
+            $cleanedOutput = preg_replace('/[^\x{0009}\x{000A}\x{000D}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u', '', $cleanedOutput);
+
+            if (str_contains($e->getMessage(), 'WARN: Establishing SSL connection')) {
+                Log::warning('Jasper report generated with SSL warning.');
+            } else {
+                throw $e;
+            }
+
             Log::error('JasperStarter processing failed (Exception): ' . $e->getMessage(), [
-                'command_output' => $report->output(),
+                'command_output' => $rawOutput,
+                'cleaned_output' => $cleanedOutput,
                 'exception_trace' => $e->getTraceAsString()
             ]);
+
             return response()->json([
                 'message' => 'Erro ao gerar o relatório: ' . $e->getMessage(),
-                'details' => $report->output()
+                'details' => $cleanedOutput
             ], 500);
         } catch (\Throwable $e) {
+            $rawOutput = $report->output();
+            $cleanedOutput = mb_convert_encoding($rawOutput, 'UTF-8', 'UTF-8');
+            $cleanedOutput = preg_replace('/[^\x{0009}\x{000A}\x{000D}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u', '', $cleanedOutput);
+
             Log::error('JasperStarter processing failed (Throwable): ' . $e->getMessage(), [
-                'command_output' => $report->output(),
+                'command_output' => $rawOutput,
+                'cleaned_output' => $cleanedOutput,
                 'exception_trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
                 'message' => 'Erro crítico ao gerar o relatório: ' . $e->getMessage(),
-                'details' => $report->output()
+                'details' => $cleanedOutput
             ], 500);
         }
 
-        // --- VERIFICAÇÃO PÓS-PROCESSAMENTO ---
-        $finalPdfPath = $fullOutputPdfPath . '.pdf'; // PHPJasper adiciona .pdf automaticamente
+        $finalPdfPath = $fullOutputPdfPath . '.pdf';
 
         if (!file_exists($finalPdfPath)) {
+            $rawOutput = $report->output();
+            $cleanedOutput = mb_convert_encoding($rawOutput, 'UTF-8', 'UTF-8');
+            $cleanedOutput = preg_replace('/[^\x{0009}\x{000A}\x{000D}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u', '', $cleanedOutput);
+
             Log::error('JasperStarter failed to create the final PDF file at the expected path (after process call).', [
                 'expected_path' => $finalPdfPath,
-                'jasper_command_output_on_fail' => $report->output()
+                'jasper_command_output_on_fail' => $rawOutput,
+                'cleaned_output_on_fail' => $cleanedOutput
             ]);
             return response()->json([
                 'message' => 'O arquivo PDF final não foi gerado pelo JasperStarter no caminho esperado.',
                 'esperado_em' => $finalPdfPath,
-                'jasper_output' => $report->output()
+                'jasper_output' => $cleanedOutput
             ], 500);
         }
 
-        // --- Ajuste 2: Alterar a exibição para download ---
         Log::info('Report generated successfully.', [
-            'jasper_command_output' => $report->output(), // output() contém o comando gerado
+            'jasper_command_output' => $report->output(),
             'generated_pdf_at' => $finalPdfPath
         ]);
 
         return response()->download($finalPdfPath, $uniquePdfFileName . '.pdf')->deleteFileAfterSend(true);
-        // --- Fim do Ajuste 2 ---
     }
 
     /**
@@ -186,16 +283,25 @@ class ReportController extends Controller
      */
     public function getDatabaseConfig(): array
     {
+        $databaseName = env('DB_DATABASE', 'moneytrackstg');
+
+        // Construa a URL JDBC completa
+       // $jdbcUrl = 'jdbc:mysql://' . env('DB_HOST', '127.0.0.1') . ':' . env('DB_PORT', '3306') . '/' . $databaseName . '?useUnicode=true&characterEncoding=UTF-8&useSSL=false';
+$jdbcUrl = '"jdbc:mysql://' . env('DB_HOST', '127.0.0.1') . ':' . env('DB_PORT', '3306') . '/' . $databaseName . '?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC"';
+
+        // Garanta que o caminho do JDBC dir use barras normais para compatibilidade com a linha de comando
+        $jdbcDir = str_replace('\\', '/', base_path() . '/vendor/lavela/phpjasper/bin/jasperstarter/jdbc');
+
         $db_connection = [
-            'driver' => 'mysql', // Esta chave 'driver' aqui não é usada pelo PHPJasper para o argumento '-t', mas pode ser para referência interna.
-            'host' => '127.0.0.1',
+            'driver' => 'mysql',
+            'host' => env('DB_HOST', '127.0.0.1'),
             'port' => '3306',
-            'database' => 'financv2',
-            'username' => 'root',
-            'password' => '', // Mantenha vazio se não houver senha
+            'database' => $databaseName,
+            'username' => env('DB_USERNAME', 'root'),
+            'password' => '',
             'jdbc_driver' => 'com.mysql.cj.jdbc.Driver',
-            'jdbc_url' => 'jdbc:mysql://127.0.0.1:3306/financv2', // Verifique se o nome do banco está correto (financv2 ou financ_v2)
-            'jdbc_dir' => base_path() . '/vendor/lavela/phpjasper/src/JasperStarter/jdbc',
+            'jdbc_url' => $jdbcUrl, // A URL já está completa
+            'jdbc_dir' => $jdbcDir,
         ];
 
         if (isset($db_connection['password']) && $db_connection['password'] === '') {

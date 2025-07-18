@@ -92,35 +92,7 @@ function jsGetParceiro(inputElement) {
         }
     });
 }
-// Procura o nome da categoria em Categorias
 
-function jsGetCategoria(categ_id,codPlanoCategoria) {
-    codCategoria = codPlanoCategoria + categ_id;
-    nrCategoria = categ_id;
-
-    $.ajax({
-        url: '/categoria/getNomeCategoria/' + codCategoria,
-        type: 'GET',
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        },
-        contentType: "application/json",
-        dataType: 'text',
-        success: function (response) {
-            var objJSON = JSON.parse(response);
-            nomeConta.value = objJSON.nome;
-        },
-        error: function (xhr, ajaxOptions, thrownError) {
-            if (xhr.status == 404) {
-               displayMessage('Erro:' + formatCodigoCategoria(nrCategoria) + '- Categoria não cadastrada!', false);
-                nomeConta.value= 'Não Cadastrado';
-                document.getElementById('categorias_id').focus();
-                document.getElementById('categorias_id').select();
-                //$('#plano_contas_conta').focus();
-            }
-        }
-    });
-};
 // Procura nome da conta no PLANO DE CONTAS
 function jsGetContraPartida(inputElement) { // Agora recebe o elemento input
     const nrContraPartida = inputElement.value; // Pega o valor do elemento

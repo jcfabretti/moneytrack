@@ -37,9 +37,9 @@ return new class extends Migration
             
             $table->string('historico',35)->nullable(false);
             $table->string('unidade',15)->nullable(false);
-            $table->float('quantidade',4)->nullable();
+            $table->float('quantidade',6,4)->nullable();
 
-            $table->double('valor',2)->nullable(false);
+            $table->double('valor',10,2)->nullable(false);
             
             $table->string('centro_custo',20)->nullable();
             $table->date('vencimento')->nullable();

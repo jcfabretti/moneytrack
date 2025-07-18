@@ -32,24 +32,24 @@ class FluxoCaixaController extends Controller
      */
     public function gerar(Request $request)
     {
-       
-        dd($request);
-        // Valida os dados da requisição
+         // Valida os dados da requisição com os nomes de input corretos
         $request->validate([
-            'empresa_id' => 'required|integer',
-            'data_inicial' => 'required|date',
-            'data_final' => 'required|date',
-            'fk_tipocategoria_id' => 'required|integer',
+            'empresa_select' => 'required|integer',
+            'lcto_dataInicial' => 'required|date',
+            'lcto_dataFinal' => 'required|date',
+            'colecaoCategoria_id' => 'required|integer',
+            'empresa_nome' => 'nullable|string', // Adicionado para validar e capturar o nome da empresa
         ]);
 
-        $empresaId = $request->input('empresa_id');
-        $dataInicial = $request->input('data_inicial');
-        $dataFinal = $request->input('data_final');
-        $fkTipoCategoriaId = $request->input('fk_tipocategoria_id');
+        // Atribui os valores dos inputs da requisição às variáveis
+        $empresaId = $request->input('empresa_select');
+        $dataInicial = $request->input('lcto_dataInicial');
+        $dataFinal = $request->input('lcto_dataFinal');
+        $fkTipoCategoriaId = $request->input('colecaoCategoria_id');
+        $empresaNome = $request->input('empresa_nome'); // Captura o nome da empresa
 
         try {
             // Chama a stored procedure diretamente usando DB::select
-            // DB::select retorna um array de objetos ou um array vazio
             $resultados = DB::select('CALL sp_gerar_fluxo_caixa_agregado(?, ?, ?, ?)', [
                 $empresaId,
                 $dataInicial,
@@ -58,10 +58,9 @@ class FluxoCaixaController extends Controller
             ]);
 
             // Mapeia os nomes das colunas de meses (display_mes_X) para usar como cabeçalhos na tabela
-            // Pega o primeiro resultado (se houver) para obter os nomes dos meses
             $mesesDisplay = [];
             if (!empty($resultados)) {
-                $primeiroResultado = (array) $resultados[0]; // Converte para array para acessar as chaves
+                $primeiroResultado = (array) $resultados[0];
                 for ($i = 1; $i <= 12; $i++) {
                     $key = 'display_mes_' . $i;
                     if (isset($primeiroResultado[$key])) {
@@ -70,15 +69,16 @@ class FluxoCaixaController extends Controller
                 }
             }
 
-            // Retorna a view com os resultados e as empresas (para manter o select preenchido)
-            // É importante passar $empresas novamente para que o dropdown continue funcionando
+            // Retorna a view com os resultados, os meses, as empresas E O NOME DA EMPRESA
+            // Você deve buscar as empresas do banco de dados para que seja dinâmico
+            // Exemplo: $empresas = \App\Models\Empresa::all();
             $empresas = [
-                (object)['id' => 1, 'nome' => 'Empresa Alpha'],
-                (object)['id' => 2, 'nome' => 'Empresa Beta'],
-                (object)['id' => 3, 'nome' => 'Empresa Gamma'],
-            ]; // Ou buscar do banco de dados novamente se preferir
+                (object)['id' => 1, 'nome' => 'Empresa Alpha', 'tipos_planocontas_id' => 1],
+                (object)['id' => 2, 'nome' => 'Empresa Beta', 'tipos_planocontas_id' => 2],
+                (object)['id' => 3, 'nome' => 'Empresa Gamma', 'tipos_planocontas_id' => 3],
+            ];
 
-            return view('relatorios.fluxocaixa', compact('resultados', 'mesesDisplay', 'empresas'));
+            return view('relatorios.fluxocaixa', compact('resultados', 'mesesDisplay', 'empresas', 'empresaNome', 'dataInicial', 'dataFinal'));
 
         } catch (\Exception $e) {
             // Em caso de erro, redireciona de volta com uma mensagem de erro

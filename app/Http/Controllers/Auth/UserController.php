@@ -36,9 +36,13 @@ class UserController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function sair()
     {
-        //
+        // Log out the user
+        auth()->logout();
+
+        // Redirect to the home page or login page
+        return redirect()->route('login');    
     }
 
     /**

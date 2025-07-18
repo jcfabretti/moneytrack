@@ -60,7 +60,7 @@
                     <tr>
                         <!-- *********** LIST HEADER ********* -->
                         <th>Id #</th>
-                        <th>Nome do Tipo de Categoria</th>
+                        <th>Nome do Conjunto de Categoria</th>
                         <th>Data Alterado</th>
                         <th>açoes &nbsp &nbsp<span class="material-icons md-45" style="cursor: pointer;"
                                 onclick="loadCreateTipoCateg()" title="Incluir">

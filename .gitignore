@@ -17,3 +17,6 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+public/reports/[PATH_TO_DB_FILES]/database.log
+public/reports/[PATH_TO_DB_FILES]/database.properties
+public/reports/[PATH_TO_DB_FILES]/database.script

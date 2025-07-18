@@ -20,9 +20,14 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'last_activity',
         'password',
     ];
-
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'last_activity' => 'datetime', 
+    ];
         public function lancamentosCriados(): HasMany
     {
         return $this->hasMany(Lancamento::class, 'created_by', 'id');

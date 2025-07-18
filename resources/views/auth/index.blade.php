@@ -62,23 +62,26 @@
                 <thead class="table thead tr">
                     <tr>
                         <!-- *********** LIST HEADER ********* -->
-                        <th>Id #</th>
                         <th>Usuario</th>
                         <th>Email</th>
+                        <th>Ultimo Login</th>
                         <th>Criado em</th>
-                        <th>açoes &nbsp &nbsp<span button type="button" class="btn btn-success" onclick="loadRegisterUser()">Novo Usuário</button>
-                            
-                            </span>
-                        </th>
+
                     </tr>
                 </thead>
                 <!-- *********** LIST BODY ********* here -->
                 <tbody>
                     @forelse ($users as $user)
                         <tr>
-                            <td>{{ $user->id }}</td>
                             <td>{{ $user->name }}</td>
                             <td>{{ $user->email }}</td>
+                            <td>
+                                @if ($user->last_activity)
+                                    {{ $user->last_activity->format('d-m-Y') }}
+                                @else
+                                    Nunca
+                                @endif
+                            </td>
                             <td>{{ $user->created_at->format('d-m-Y') }}</td>
 
                         </tr>

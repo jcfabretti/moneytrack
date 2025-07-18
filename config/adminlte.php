@@ -334,8 +334,8 @@ return [
             'text' => 'search',
         ],
         [
-            'text' => 'Home',
-            'url' => 'home/',
+            'text' => 'Dashboard',
+            'url' => '/dashboard',
             'icon' => 'fas fa-thin fa-home',
              'icon_color' => 'red',
         ],
@@ -404,15 +404,15 @@ return [
         ],
 
         [
-            'text' => 'Tabela de Categorias',
+            'text' => 'Categorias',
             'icon' => 'fas fa-fw fa-table',
             'submenu' => [
                 [
-                    'text' => 'Categoria',
+                    'text' => 'Listar Categorias',
                     'url' => '/categoria/index/0',
                 ],
                 [
-                    'text' => 'Tipos de Categoria',
+                    'text' => 'Coleção de Categorias',
                     'url' => '/categoria/tipos/index',
                 ],
 
@@ -439,7 +439,7 @@ return [
         [
             'text' => 'Logout',
             'icon' => 'fas fa-sign-out-alt',
-            'url' => 'logout',
+            'url' => 'auth/sair',
         ],
 
     ],

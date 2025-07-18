@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
@@ -53,7 +54,19 @@ Route::middleware('auth')->group(function () {
     Route::post('confirm-password', [ConfirmablePasswordController::class, 'store']);
 
     Route::put('password', [PasswordController::class, 'update'])->name('password.update');
+    
+    Route::get('/auth/index',        [App\Http\Controllers\HomeController::class, 'indexuser'])->name('auth.indexusers');
+
+    Route::get('/auth/sair',         [App\Http\Controllers\Auth\UserController::class, 'sair'])->name('auth.sair');
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+
+    // Rotas padrão do Breeze para perfil
+    Route::get('/admin/register', [RegisteredUserController::class, 'create'])->name('admin.register');
+    Route::post('/admin/register', [RegisteredUserController::class, 'store'])->name('admin.register.store');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');        
+
 });
