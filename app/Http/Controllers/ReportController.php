@@ -59,7 +59,7 @@ class ReportController extends Controller
                 break;
 
             case '2': // 2. Lançamentos por Data
-                $reportName = 'Lancamentos_por_data';
+                $reportName = 'lancamentos_por_data';
                 // Mapeamento: Parameter2=Data Inicial, Parameter1=Data Final
                 if ($request->filled('lcto_dataInicial')) {
                     $reportParams['Parameter2'] = $request->input('lcto_dataInicial');
@@ -72,10 +72,10 @@ class ReportController extends Controller
             case '3': // 3. Lançamento por Categoria
                 // Lógica para escolher entre "uma categoria" ou "todas as categorias"
                 if ($request->has('all_categories_checkbox') && $request->input('all_categories_checkbox') === 'on') {
-                    $reportName = 'Lancamentos_por_todas_categoria'; // JRXML para todas as categorias
+                    $reportName = 'lancamentos_por_todas_categoria'; // JRXML para todas as categorias
                     // Este JRXML não usa Parameter3, então não o adicionamos a $reportParams
                 } else {
-                    $reportName = 'Lancamentos_por_uma_categoria'; // JRXML para uma categoria
+                    $reportName = 'lancamentos_por_uma_categoria'; // JRXML para uma categoria
                     // Se o checkbox NÃO foi marcado, a categoria_id é obrigatória
                     if (!$request->filled('categorias_id')) {
                         throw ValidationException::withMessages([
@@ -101,7 +101,7 @@ class ReportController extends Controller
                 break;
 
             case '4': // 4. Movimentação por Categoria-Banco
-                $reportName = 'Movimentacao_por_categoria_banco';
+                $reportName = 'movimentacao_por_categoria_banco';
                 // Você precisará definir os parâmetros para este relatório
                 if ($request->filled('lcto_dataInicial')) {
                     $reportParams['PARAM_DATA_INICIAL'] = $request->input('lcto_dataInicial');
