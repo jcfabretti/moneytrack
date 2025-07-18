@@ -4,56 +4,49 @@ on:
   push:
     branches:
       - main # Dispara o deploy quando há um push para a branch 'main'
-            # Se você usa uma branch de deploy diferente (ex: 'production'), altere aqui.
+  
+  workflow_dispatch: # Permite execução manual a partir da aba "Actions"
 
 jobs:
   deploy:
     runs-on: ubuntu-latest # O ambiente de execução para o workflow
 
     steps:
-    - name: Checkout code # Passo 1: Clona o repositório (apenas para o runner, não para o deploy)
+    - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup SSH Key # Passo 2: Configura a chave SSH privada para autenticação no servidor de produção
+    - name: Setup SSH Key
       uses: webfactory/ssh-agent@v0.9.0
       with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }} # Chave privada SSH armazenada como GitHub Secret
-        
-    - name: Add SSH Known Hosts # Passo 3: Adiciona o host de produção aos 'known_hosts' para evitar avisos de segurança
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Add SSH Known Hosts
       run: |
         mkdir -p ~/.ssh
         ssh-keyscan -H ${{ secrets.REMOTE_HOST }} >> ~/.ssh/known_hosts
-        chmod 600 ~/.ssh/known_hosts # Garante permissões corretas para o arquivo
+        chmod 600 ~/.ssh/known_hosts
 
-    - name: Execute Git Pull and Post-Deployment Commands # Passo 4: Conecta ao servidor e executa comandos
+    - name: Execute Git Pull and Post-Deployment Commands
       run: |
         ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
-          # Navega para a pasta exata do projeto no servidor
           cd /home/user/htdocs/srv891877.hstgr.cloud
 
-          # Executa o git pull para baixar as últimas alterações
           echo "Executando git pull..."
-          git pull origin main # OU a branch que você quer puxar (ex: 'master', 'production')
+          git pull origin main
 
-          # Comandos Laravel pós-pull (essenciais para atualizar o app)
-          #echo "Executando composer install no servidor..."
-          #composer install --no-dev --optimize-autoloader # Instala dependências (se houver novas)
+          echo "Executando composer install no servidor..."
+          composer install --no-dev --optimize-autoloader
           
           echo "Limpando caches do Laravel..."
           php artisan optimize:clear # Limpa todos os caches
           php artisan config:cache   # Recria o cache de configuração
           php artisan route:cache    # Recria o cache de rotas
           php artisan view:cache     # Recria o cache de views
-          # php artisan event:cache  # Se você usa cache de eventos
 
-          # Se você tem storage links e eles não persistem entre deploys
-          # php artisan storage:link
-
-          # Reiniciar PHP-FPM (se você usa Apache/Nginx com PHP-FPM)
-          # Isso é crucial para que as novas classes e configurações sejam carregadas
-          echo "Reiniciando PHP-FPM e Nginx/Apache..."
-          sudo systemctl reload php8.3-fpm # AJUSTE A VERSÃO DO PHP AQUI (ex: php7.4-fpm, php8.1-fpm)
-          sudo systemctl restart nginx    # OU sudo systemctl restart apache2 (depende do seu servidor web)
+          # Comandos de reinício de serviços (COMENTADOS TEMPORARIAMENTE)
+          # echo "Reiniciando PHP-FPM e Nginx/Apache..."
+          # sudo systemctl reload php8.3-fpm # AJUSTE A VERSÃO DO PHP AQUI
+          # sudo systemctl restart nginx    # OU sudo systemctl restart apache2
 
           echo "Deploy concluído com sucesso!"
         EOF
