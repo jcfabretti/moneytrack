@@ -330,7 +330,7 @@ class ReportController extends Controller
         // Define o nome de usuário do banco de dados, usando 'fabrettidev' como padrão
         $dbUsername = env('DB_USERNAME', 'fabrettidev');
         // Define a senha do banco de dados, obtendo do .env (pode ser vazia)
-        $dbPassword = env('DB_PASSWORD', ''); 
+        $dbPassword = env('DB_PASSWORD', '4kZTcPE3Yzt3IEBKOD0N'); 
 
         // Constrói a URL JDBC completa para a conexão MySQL.
         // Inclui parâmetros importantes para compatibilidade e codificação de caracteres.
