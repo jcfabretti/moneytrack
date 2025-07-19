@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log; // Importe a classe Log
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Validation\ValidationException; // Importe a classe ValidationException
 
 
 class ReportController extends Controller
@@ -62,10 +63,10 @@ class ReportController extends Controller
                 $reportName = 'lancamentos_por_data';
                 // Mapeamento: Parameter2=Data Inicial, Parameter1=Data Final
                 if ($request->filled('lcto_dataInicial')) {
-                    $reportParams['Parameter2'] = $request->input('lcto_dataInicial');
+                    $reportParams['Parameter1'] = $request->input('lcto_dataInicial');
                 }
                 if ($request->filled('lcto_dataFinal')) {
-                    $reportParams['Parameter1'] = $request->input('lcto_dataFinal');
+                    $reportParams['Parameter2'] = $request->input('lcto_dataFinal');
                 }
                 break;
 
@@ -140,8 +141,8 @@ class ReportController extends Controller
     {
         $empresaId = $request->input('empresa_select');
         $empresaNome=$request->input('empresa_nome');
-        $dataInicial = $request->input('lcto_dataInicial');
-        $dataFinal = $request->input('lcto_dataFinal');
+        $dataInicial = Carbon::parse($request->input('lcto_dataInicial'))->format('Y-m-d'); // Formato Y-m-d para DB
+        $dataFinal = Carbon::parse($request->input('lcto_dataFinal'))->format('Y-m-d');     // Formato Y-m-d para DB
         $fkTipoCategoriaId = $request->input('colecaoCategoria_id');
 
         try {
@@ -172,10 +173,10 @@ class ReportController extends Controller
                 }
             }
         // Formate as datas para o formato desejado antes de passá-las para a view
-        $dataInicial =Carbon::parse($request->input('lcto_dataInicial'))->format('d/m/y');
-        $dataFinal =Carbon::parse($request->input('lcto_dataFinal'))->format('d/m/y');
+        $dataInicialDisplay =Carbon::parse($request->input('lcto_dataInicial'))->format('d/m/y');
+        $dataFinalDisplay =Carbon::parse($request->input('lcto_dataFinal'))->format('d/m/y');
 
-            return view('relatorios.fluxocaixa', compact('resultados', 'mesesDisplay','empresaNome','dataInicial', 'dataFinal'));
+            return view('relatorios.fluxocaixa', compact('resultados', 'mesesDisplay','empresaNome','dataInicialDisplay', 'dataFinalDisplay'));
         } catch (\Exception $e) {
             // Em caso de erro, redireciona de volta com uma mensagem de erro
             return redirect()->back()->withInput($request->all())->with('error', 'Erro ao gerar o fluxo de caixa: ' . $e->getMessage());
@@ -194,25 +195,62 @@ class ReportController extends Controller
             mkdir($outputDirectory, 0777, true);
         }
         $fullOutputPdfPath = $outputDirectory . '/' . $uniquePdfFileName;
-
-        Log::info('Parâmetros do relatório a serem usados:', $reportParams);
+        $finalPdfPath = $fullOutputPdfPath . '.pdf';
+        Log::info('Parametros do relatorio a serem usados:', $reportParams);
 
 
         $report = new PHPJasper();
+
         try {
             $dbConnectionConfig = $this->getDatabaseConfig();
 
+            // Caminho do executável jasperstarter (isso está correto)
+            $jasperExecutablePath = base_path('vendor/lavela/phpjasper/bin/jasperstarter/bin/jasperstarter');
+
+            $options = [
+                'format' => ['pdf'], // A chave deve ser 'format', não '-f'
+                'params' => $reportParams,
+                'db_connection' => [
+                    'driver'        => $dbConnectionConfig['driver'],
+                    'host'          => $dbConnectionConfig['host'],
+                    'port'          => $dbConnectionConfig['port'],
+                    'database'      => $dbConnectionConfig['database'],
+                    'username'      => $dbConnectionConfig['username'],
+                    'password'      => $dbConnectionConfig['password'],
+                    'jdbc_driver'   => $dbConnectionConfig['jdbc_driver'],
+                    'jdbc_url'      => $dbConnectionConfig['jdbc_url'],
+                    'jdbc_dir'      => $dbConnectionConfig['jdbc_dir'],
+                ],
+                // A chave 'executable_path' não é uma opção padrão para o método process().
+                // O PHPJasper já sabe onde está o executável por seu construtor ou por padrão.
+                // Remova esta linha:
+                // 'executable_path' => $jasperExecutablePath,
+            ];
+
+            // Log das opções para depuração (este log é útil!)
+            Log::info('Opcoes do JasperStarter a serem usadas:', $options);
+
+            // --- ESTE É O PONTO CRÍTICO: CHAME PROCESS() PRIMEIRO ---
             $report->process(
                 public_path('reports') . '/' . $fullReportNameJrxml,
                 $fullOutputPdfPath,
-                [
-                    'format' => ['pdf'],
-                    'params' => $reportParams, // Usa os parâmetros já criados
-                    'db_connection' => $dbConnectionConfig
-                ]
-            )->execute();
+                $options
+            );
+
+            // --- AGORA VOCÊ PODE CHAMAR output() PARA VER O COMANDO COMPLETO ---
+            Log::info("Comando FINAL do JasperStarter (para debug): " . $report->output());
+
+            $report->execute();
+
+            // Lógica de sucesso aqui
+            Log::info('Report generated successfully.', [
+                'jasper_command_output' => $report->output(), // Pode logar aqui também, se desejar
+                'generated_pdf_at' => $finalPdfPath
+            ]);
+            return response()->download($finalPdfPath, $uniquePdfFileName . '.pdf')->deleteFileAfterSend(true);
 
         } catch (\Exception $e) {
+            // Se o erro acontecer AQUI, o output() já terá o comando que causou o problema
             $rawOutput = $report->output();
             $cleanedOutput = mb_convert_encoding($rawOutput, 'UTF-8', 'UTF-8');
             $cleanedOutput = preg_replace('/[^\x{0009}\x{000A}\x{000D}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u', '', $cleanedOutput);
@@ -220,20 +258,21 @@ class ReportController extends Controller
             if (str_contains($e->getMessage(), 'WARN: Establishing SSL connection')) {
                 Log::warning('Jasper report generated with SSL warning.');
             } else {
-                throw $e;
+                // Logue a exceção original e a saída do comando aqui
+                Log::error('JasperStarter processing failed (Exception): ' . $e->getMessage(), [
+                    'command_output' => $rawOutput,
+                    'cleaned_output' => $cleanedOutput,
+                    'exception_trace' => $e->getTraceAsString()
+                ]);
             }
-
-            Log::error('JasperStarter processing failed (Exception): ' . $e->getMessage(), [
-                'command_output' => $rawOutput,
-                'cleaned_output' => $cleanedOutput,
-                'exception_trace' => $e->getTraceAsString()
-            ]);
-
+            // Retorne a resposta de erro
             return response()->json([
                 'message' => 'Erro ao gerar o relatório: ' . $e->getMessage(),
                 'details' => $cleanedOutput
             ], 500);
         } catch (\Throwable $e) {
+            // Este catch de Throwable é para erros mais graves que não são Exceptions
+            // Aqui, o output() também deve ter o comando que causou o problema
             $rawOutput = $report->output();
             $cleanedOutput = mb_convert_encoding($rawOutput, 'UTF-8', 'UTF-8');
             $cleanedOutput = preg_replace('/[^\x{0009}\x{000A}\x{000D}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u', '', $cleanedOutput);
@@ -250,10 +289,11 @@ class ReportController extends Controller
             ], 500);
         }
 
-        $finalPdfPath = $fullOutputPdfPath . '.pdf';
+        // Este bloco é para verificar se o arquivo PDF existe após a execução bem-sucedida,
+        // mas antes do download.
 
         if (!file_exists($finalPdfPath)) {
-            $rawOutput = $report->output();
+            $rawOutput = $report->output(); // O output() ainda estará disponível
             $cleanedOutput = mb_convert_encoding($rawOutput, 'UTF-8', 'UTF-8');
             $cleanedOutput = preg_replace('/[^\x{0009}\x{000A}\x{000D}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u', '', $cleanedOutput);
 
@@ -283,81 +323,57 @@ class ReportController extends Controller
      */
     public function getDatabaseConfig(): array
     {
-        $databaseName = env('DB_DATABASE', 'moneytrackstg');
+        // Define o nome do banco de dados, usando 'mtrack' como padrão se não estiver no .env
+        $databaseName = env('DB_DATABASE', 'mtrack');
+        $dbHost = env('DB_HOST', '127.0.0.1');
+        $dbPort = env('DB_PORT', '3306');
+        // Define o nome de usuário do banco de dados, usando 'fabrettidev' como padrão
+        $dbUsername = env('DB_USERNAME', 'fabrettidev');
+        // Define a senha do banco de dados, obtendo do .env (pode ser vazia)
+        $dbPassword = env('DB_PASSWORD', ''); 
 
-        // Construa a URL JDBC completa
-       // $jdbcUrl = 'jdbc:mysql://' . env('DB_HOST', '127.0.0.1') . ':' . env('DB_PORT', '3306') . '/' . $databaseName . '?useUnicode=true&characterEncoding=UTF-8&useSSL=false';
-$jdbcUrl = '"jdbc:mysql://' . env('DB_HOST', '127.0.0.1') . ':' . env('DB_PORT', '3306') . '/' . $databaseName . '?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC"';
+        // Constrói a URL JDBC completa para a conexão MySQL.
+        // Inclui parâmetros importantes para compatibilidade e codificação de caracteres.
+        // - useUnicode=true: Habilita o uso de caracteres Unicode.
+        // - characterEncoding=UTF-8: Define a codificação de caracteres para UTF-8.
+        // - useSSL=false: Desabilita SSL (muitas vezes necessário em ambientes de desenvolvimento/locais).
+        // - serverTimezone=UTC: Define o fuso horário do servidor, importante para consistência de datas.
+        $jdbcUrl = 'jdbc:mysql://' . $dbHost . ':' . $dbPort . '/' . $databaseName ;
 
-        // Garanta que o caminho do JDBC dir use barras normais para compatibilidade com a linha de comando
+        // Garante que o caminho do diretório JDBC use barras normais (/)
+        // para compatibilidade entre sistemas operacionais (Windows/Linux).
+        // Este diretório deve conter o arquivo JAR do driver JDBC do MySQL (ex: mysql-connector-j-X.X.X.jar).
         $jdbcDir = str_replace('\\', '/', base_path() . '/vendor/lavela/phpjasper/bin/jasperstarter/jdbc');
+                                
+        // A lógica de escape para Windows (`if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN')`)
+        // foi removida. A biblioteca PHPJasper deve lidar com o escape de argumentos
+        // para o shell usando `escapeshellarg()` internamente. Se o problema de
+        // interpretação de caracteres especiais persistir no servidor Linux,
+        // isso indica uma limitação do ambiente do shell ou da versão do jasperstarter
+        // que precisará de uma solução mais avançada (ex: arquivo de propriedades do Jasper).
 
+        // Configuração da conexão para a biblioteca PHPJasper.
+        // O 'driver' deve ser 'generic' quando você está fornecendo uma 'jdbc_url' completa,
+        // pois isso dá ao jasperstarter mais controle sobre a conexão.
+        // 'jdbc_driver' é o nome da classe Java do driver JDBC (o novo driver recomendado).
+        // 'jdbc_url' é a string de conexão completa para o banco de dados.
+        // 'jdbc_dir' é o caminho para o diretório que contém o driver JDBC.
         $db_connection = [
-            'driver' => 'mysql',
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => '3306',
+            'driver' => 'generic', // Tipo de driver para o PHPJasper (funciona com o comando manual)
+            'host' => $dbHost,
+            'port' => $dbPort,
             'database' => $databaseName,
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => '',
-            'jdbc_driver' => 'com.mysql.cj.jdbc.Driver',
-            'jdbc_url' => $jdbcUrl, // A URL já está completa
-            'jdbc_dir' => $jdbcDir,
+            'username' => $dbUsername,
+            'password' => $dbPassword, // A biblioteca PHPJasper espera esta chave para a senha
+            'jdbc_driver' => 'com.mysql.cj.jdbc.Driver', // Driver JDBC Java (explicitamente)
+            'jdbc_url' => $jdbcUrl, // URL JDBC completa
+            'jdbc_dir' => $jdbcDir, // Diretório onde o driver .jar está
         ];
 
-        if (isset($db_connection['password']) && $db_connection['password'] === '') {
-            unset($db_connection['password']);
-        }
+        // O bloco de `unset($db_connection['password'])` foi removido.
+        // A chave 'password' deve sempre existir no array, mesmo que seu valor seja uma string vazia.
+        // A biblioteca PHPJasper e o jasperstarter lidam corretamente com senhas vazias dessa forma.
 
         return $db_connection;
     }
 }
-
-/*
-jasperstarter process \
-"C:\laragon\www\moneytrackrep\public\reports/LancamentoPorData.jrxml" \
--f pdf \
--o "C:\laragon\www\moneytrackrep\storage\app/public/reports_temp/1749045362_LancamentoPorData.pdf" \
--P Parameter1="2025-06-04" \
--P Parameter2="2025-05-02" \
--t com.mysql.cj.jdbc.Driver \
--H 127.0.0.1 \
---db-port 3306 \
--n financv2 \
--u root \
---pass SUA_SENHA_AQUI \
---db-driver com.mysql.cj.jdbc.Driver \
---db-url "jdbc:mysql://127.0.0.1:3306/financv2?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC" \
---jdbc-dir "C:\laragon\www\moneytrackrep/vendor/lavela/phpjasper/src/JasperStarter/jdbc"
-
-
-$jasper = new JasperPHP;
-
-$input =  preg_replace('/\.jrxml$/i', '', $reportName) . '.jrxml'; 
-$output = '/your_output_path';
-$extension= 'pdf';
-$locale = 'pt_BR';
-
-$jasper->process(
-    $input,
-    $output,
-    $extension, 
-    [
-        'parameter_1' => 'title',
-        'parameter_2' => 'name',
-    ],
-    [
-        'driver' => 'postgres',
-        'username' => 'DB_USERNAME',
-        'password' => 'DB_PASSWORD',
-        'host' => 'DB_HOST',
-        'database' => 'DB_DATABASE',
-        'schema' => 'DB_SCHEMA',
-        'port' => '5432'
-     ],
-    $locale
-)->execute();
-
-
-https://github.com/PHPJasper/phpjasper/issues/3
- 
-*/

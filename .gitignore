@@ -4,6 +4,7 @@
 /public/hot
 /public/storage
 /storage/*.key
+/temp/*.*
 /vendor
 .env
 .env.backup
@@ -20,3 +21,4 @@ yarn-error.log
 public/reports/[PATH_TO_DB_FILES]/database.log
 public/reports/[PATH_TO_DB_FILES]/database.properties
 public/reports/[PATH_TO_DB_FILES]/database.script
+docs.md
