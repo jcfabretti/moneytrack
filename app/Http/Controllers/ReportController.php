@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use PHPJasper\PHPJasper;
-use Illuminate\Support\Facades\Log; // Importe a classe Log
+use Illuminate\Support\Facades\Log; 
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-use Illuminate\Validation\ValidationException; // Importe a classe ValidationException
+use Illuminate\Validation\ValidationException; 
 
 
 class ReportController extends Controller
@@ -196,7 +196,8 @@ class ReportController extends Controller
         }
         $fullOutputPdfPath = $outputDirectory . '/' . $uniquePdfFileName;
         $finalPdfPath = $fullOutputPdfPath . '.pdf';
-        Log::info('Parametros do relatorio a serem usados:', $reportParams);
+       
+       // Log::info('Parametros do relatorio a serem usados:', $reportParams);
 
 
         $report = new PHPJasper();
@@ -228,7 +229,7 @@ class ReportController extends Controller
             ];
 
             // Log das opções para depuração (este log é útil!)
-            Log::info('Opcoes do JasperStarter a serem usadas:', $options);
+          //  Log::info('Opcoes do JasperStarter a serem usadas:', $options);
 
             // --- ESTE É O PONTO CRÍTICO: CHAME PROCESS() PRIMEIRO ---
             $report->process(
@@ -238,7 +239,7 @@ class ReportController extends Controller
             );
 
             // --- AGORA VOCÊ PODE CHAMAR output() PARA VER O COMANDO COMPLETO ---
-            Log::info("Comando FINAL do JasperStarter (para debug): " . $report->output());
+           // Log::info("Comando FINAL do JasperStarter (para debug): " . $report->output());
 
             $report->execute();
 

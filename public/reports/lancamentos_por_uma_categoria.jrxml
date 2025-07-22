@@ -100,7 +100,20 @@ ORDER BY categoria_nome ASC,
 						<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="5d83b74a-e3c4-4e45-946e-0eba198c8376"/>
 						<property name="com.jaspersoft.studio.unit.height" value="px"/>
 					</reportElement>
-					<textFieldExpression><![CDATA[$F{categorias_id}]]></textFieldExpression>
+					<textFieldExpression><![CDATA[// Verifica se $F{categorias_id} é nulo. Se sim, retorna uma string vazia.
+        ($F{categorias_id} == null) ?
+            "" :
+            // Se não for nulo, converte para String.
+            // Em seguida, verifica o comprimento da string.
+            (String.valueOf($F{categorias_id}).length() < 5 ?
+                // Se o comprimento for menor que 5, retorna a string original (não formatada).
+                String.valueOf($F{categorias_id}) :
+                // Se o comprimento for 5 ou mais, extrai os últimos 5 caracteres
+                // e os formata no padrão x.xx.xx.
+                (String.valueOf($F{categorias_id}).substring(String.valueOf($F{categorias_id}).length() - 5).charAt(0) + "." +
+                 String.valueOf($F{categorias_id}).substring(String.valueOf($F{categorias_id}).length() - 5).substring(1, 3) + "." +
+                 String.valueOf($F{categorias_id}).substring(String.valueOf($F{categorias_id}).length() - 5).substring(3, 5))
+            )]]></textFieldExpression>
 				</textField>
 			</band>
 		</groupHeader>
@@ -133,7 +146,7 @@ ORDER BY categoria_nome ASC,
 		<band height="4" splitType="Stretch"/>
 	</title>
 	<pageHeader>
-		<band height="47" splitType="Stretch">
+		<band height="54" splitType="Stretch">
 			<staticText>
 				<reportElement x="130" y="0" width="310" height="23" uuid="a593bee1-38ac-45d7-a57e-aaaea1969bc2">
 					<property name="com.jaspersoft.studio.unit.height" value="px"/>
@@ -155,30 +168,6 @@ ORDER BY categoria_nome ASC,
 				<textElement textAlignment="Right"/>
 				<textFieldExpression><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
 			</textField>
-			<textField pattern="d/M/yy">
-				<reportElement x="236" y="23" width="40" height="20" uuid="2abbf17a-390a-418b-97a4-4ad264d69abc">
-					<property name="com.jaspersoft.studio.unit.y" value="px"/>
-					<property name="com.jaspersoft.studio.unit.width" value="px"/>
-				</reportElement>
-				<textFieldExpression><![CDATA[$P{Parameter1}]]></textFieldExpression>
-			</textField>
-			<textField pattern="d/M/yy">
-				<reportElement x="300" y="23" width="74" height="20" uuid="4f53b3a7-e1a1-4e94-95c4-34c1d7843300">
-					<property name="com.jaspersoft.studio.unit.y" value="px"/>
-					<property name="com.jaspersoft.studio.unit.width" value="px"/>
-				</reportElement>
-				<textFieldExpression><![CDATA[$P{Parameter2}]]></textFieldExpression>
-			</textField>
-			<staticText>
-				<reportElement x="264" y="23" width="40" height="20" uuid="342b313e-94d0-477c-b1a2-aa33d6b229a7">
-					<property name="com.jaspersoft.studio.unit.width" value="px"/>
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<textElement textAlignment="Center">
-					<font isBold="true"/>
-				</textElement>
-				<text><![CDATA[até]]></text>
-			</staticText>
 			<image>
 				<reportElement x="0" y="1" width="130" height="25" uuid="809b2296-31ae-4675-906a-a0c9b4e8e861">
 					<property name="com.jaspersoft.studio.unit.width" value="px"/>
@@ -198,6 +187,19 @@ ORDER BY categoria_nome ASC,
 			<line>
 				<reportElement x="0" y="45" width="555" height="1" uuid="31da2a3b-bbc1-49f2-bea6-898847b28932"/>
 			</line>
+			<textField>
+				<reportElement x="197" y="17" width="180" height="30" uuid="35e6e0f3-61df-4da7-a07f-bf590ad9233b"/>
+				<textFieldExpression><![CDATA["De " +
+                ( ($P{Parameter1} != null && !$P{Parameter1}.isEmpty())
+                    ? new java.text.SimpleDateFormat("dd/MM/yyyy").format(new java.text.SimpleDateFormat("yyyy-MM-dd").parse($P{Parameter1}))
+                    : "" 
+                ) +
+                " até " +
+                ( ($P{Parameter2} != null && !$P{Parameter2}.isEmpty())
+                    ? new java.text.SimpleDateFormat("dd/MM/yyyy").format(new java.text.SimpleDateFormat("yyyy-MM-dd").parse($P{Parameter2}))
+                    : "" 
+                )]]></textFieldExpression>
+			</textField>
 		</band>
 	</pageHeader>
 	<columnHeader>
